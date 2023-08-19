@@ -1,0 +1,214 @@
+% a mashup of hipstercv, friggeri and twenty cv
+% https://www.latextemplates.com/template/twenty-seconds-resumecv
+% https://www.latextemplates.com/template/friggeri-resume-cv
+
+\documentclass[lighthipster]{simplehipstercv}
+% available options are: darkhipster, lighthipster, pastel, allblack, grey, verylight, withoutsidebar
+% withoutsidebar
+\usepackage[utf8]{inputenc}
+\usepackage[default]{raleway}
+\usepackage[margin=1cm, a4paper]{geometry}
+
+
+%------------------------------------------------------------------ Variablen
+
+\newlength{\rightcolwidth}
+\newlength{\leftcolwidth}
+\setlength{\leftcolwidth}{0.23\textwidth}
+\setlength{\rightcolwidth}{0.75\textwidth}
+
+%------------------------------------------------------------------
+\title{New Simple CV}
+\author{\LaTeX{} Ninja}
+\date{June 2019}
+
+\pagestyle{empty}
+\begin{document}
+
+
+\thispagestyle{empty}
+%-------------------------------------------------------------
+
+\section*{Start}
+
+\simpleheader{headercolour}{Haba}{Alphonse}{Data Scientist}{white}
+
+
+
+%------------------------------------------------
+
+% this has to be here so the paracols starts..
+\subsection*{}
+\vspace{4em}
+
+\setlength{\columnsep}{1.5cm}
+\columnratio{0.23}[0.75]
+\begin{paracol}{2}
+\hbadness5000
+%\backgroundcolor{c[1]}[rgb]{1,1,0.8} % cream yellow for column-1 %\backgroundcolor{g}[rgb]{0.8,1,1} % \backgroundcolor{l}[rgb]{0,0,0.7} % dark blue for left margin
+
+\paracolbackgroundoptions
+
+% 0.9,0.9,0.9 -- 0.8,0.8,0.8
+
+
+\footnotesize
+{\setasidefontcolour
+\flushright
+\begin{center}
+    \roundpic{King_Ceta.jpg}
+\end{center}
+
+\bg{cvgreen}{white}{About me}\\[0.5em]
+Data Scientist, Innovative and ambitious programmer seeking to improve the world through the design and development of data management and analysis concepts.
+Self-trading Forex, Cryptocurrency (development of models and techniques to forecast financial market trends).
+
+
+{\footnotesize}
+\bigskip
+
+\bg{cvgreen}{white}{personal} \\[0.5em]
+Haba Alphonse 
+
+nationality: Guinean 
+
+1996
+
+\bigskip
+
+\bg{cvgreen}{white}{Areas of specialization} \\[0.5em]
+
+Statistics ~•~ Engineer Data ~•~ Data Analyst ~•~ Programming
+
+\bigskip
+
+
+
+\bigskip
+
+\bg{cvgreen}{white}{Objectif}\\[0.5em]
+Young man with a passion for statistics and computer science. The use of technology for the development of optimization models and data analysis through programming for good resource management is a goal.
+
+
+\bigskip
+
+\bg{cvgreen}{white}{Interest}\\[0.5em]
+
+\texttt{P} ~/~ \texttt{Windows } ~/~ \texttt{Linux}
+
+\texttt{R} ~/~ \texttt{Android} ~/~ \texttt{Linux}
+
+\texttt{C} ~/~ \texttt{Apple/macs} ~/~ \texttt{Linux}
+
+\vspace{4em}
+
+
+\infobubble{\faTwitter}{cvgreen}{white}{@cetahaba}
+\infobubble{\faEnvelopeO}{cvgreen}{white}{alphonsehaba27}
+\infobubble{\faGithub}{cvgreen}{white}{cetaking27}
+
+\phantom{turn the page}
+
+\phantom{turn the page}
+}
+%-----------------------------------------------------------
+\switchcolumn
+
+\small
+\section*{Professional Experience}
+
+\begin{tabular}{r| p{0.5\textwidth} c}
+    \cvevent{2022}{Tech. support and Customer care}{Yandex}{Moscow-Russia \color{cvred}}{My responsibilities:
+- Receiving and processing telephone calls and requests from users;
+- Initial analysis of the problem, consulting and training of users;
+- Development and updating of instructions, training materials for users;
+- Creating accounts, granting and editing access rights;
+- Setting up reports with standard configuration tools, helping users set up reports, list forms, etc.;
+- Detecting errors in the system.}{2-0.jpg} \\
+    \cvevent{03--05/2022}{Intern ERP-system Developper}{AOO Cordiant}{Moscow-Russia \color{cvred}}{Revision of standard ERP configurations, Enterprise Accounting;
+- Data exchanges using various transports (com, ftp, web/http services) and formats (xml, json, data conversion);
+- Differentiation of access rights at the record level (RLS);
+- Creation of complex reports on SKD;
+- Testing changes;
+- Launch of tested changes into operation (participation in the preparation of instructions, updating of productive databases);
+- Optimization of code and queries to improve performance.}{2-3.jpg} \\
+    \cvevent{2021--2022}{Specialist Cuctomer care}{Tele performance}{Moscow-Russia \color{cvred}}{Resposibilities: - Reception and processing of telephone and reported calls and requests from users.
+- communicate with users - via chat and calls,
+- Directing clients on how to quickly set up the work of services.
+- Give detailed feedback to managers and developers so that they can fix problems.}{2-4.jpg}
+\end{tabular}
+\vspace{3em}
+
+\begin{minipage}[t]{0.35\textwidth}
+\section*{Degrees}
+\begin{tabular}{r p{0.6\textwidth} c}
+    \cvdegree{2022--2024}{Master Applied Math and Computer Science}{Certified}{RUDN Uni \color{headerblue}}{}{disney.png} \\
+    \cvdegree{2022--2023}{Certification Data scientist}{Certified Yandex Practicuim}{Moscow\color{headerblue}}{}{diplom.jpg} \\
+    \cvdegree{2018--2022}{Bachelor Applied Math and Computer Science}{Certified}{RUDN Uni \color{headerblue}}{}{diplom.jpg}
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+\section*{Programming}
+\begin{tabular}{r @{\hspace{0.5em}}l}
+     \bg{skilllabelcolour}{iconcolour}{html, css} &  \barrule{0.4}{0.5em}{cvpurple}\\
+     \bg{skilllabelcolour}{iconcolour}{\LaTeX} & \barrule{0.2}{0.5em}{cvgreen} \\
+     \bg{skilllabelcolour}{iconcolour}{python} & \barrule{0.4}{0.5em}{cvpurple} \\
+     \bg{skilllabelcolour}{iconcolour}{Excel, MS office} & \barrule{0.5}{0.5em}{cvpurple} \\
+     \bg{skilllabelcolour}{iconcolour}{javascript} & \barrule{0.1}{0.5em}{cvgreen} \\
+     \bg{skilllabelcolour}{iconcolour}{SPSS, Gimp} &  \barrule{0.3}{0.5em}{cvgreen}\\
+     \bg{skilllabelcolour}{iconcolour}{SQL, MySQL} &  \barrule{0.5}{0.5em}{cvpurple}\\
+\end{tabular}
+\end{minipage}
+
+\begin{minipage}[t]{0.3\textwidth}
+\section*{Certificates \& Grants}
+\begin{tabular}{>{\footnotesize\bfseries}r >{\footnotesize}p{0.55\textwidth}}
+    2022 & Voluntary's Certificates \\
+    2022 & Certified Active student/ R.U.D.N/Rector  \\
+    2019 & President of Guinean Student's community/R.U.D.N University
+\end{tabular}
+\bigskip
+
+\section*{Languages}
+\begin{tabular}{l | ll}
+\textbf{French} & C2 & {\phantom{x}\footnotesize mother tongue} \\
+\textbf{English} & B2 & \pictofraction{\faCircle}{cvgreen}{3}{black!30}{1}{\tiny} \\
+\textbf{Russian} & B2 & \pictofraction{\faCircle}{cvgreen}{3}{black!30}{1}{\tiny} \\
+\textbf{German} & A1 & \pictofraction{\faCircle}{cvgreen}{1}{black!30}{3}{\tiny}
+\end{tabular}
+\bigskip
+
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+\section*{Publications}
+\begin{tabular}{>{\footnotesize\bfseries}r >{\footnotesize}p{0.7\textwidth}}
+    2022 & \emph{How I almost got killed by Lady Swan}, R.U.D.N university. 
+\end{tabular}
+\bigskip
+
+\section*{Hobbies}
+\begin{tabular}{>{\footnotesize\bfseries}r >{\footnotesize}p{0.6\textwidth}}
+     & ``Soccer (club) / Sport /Manga / Reading / Games Videos
+New Tech / Actus Geek``
+
+\end{tabular}
+\end{minipage}
+
+
+
+\vfill{} % Whitespace before final footer
+
+%----------------------------------------------------------------------------------------
+%	FINAL FOOTER
+%----------------------------------------------------------------------------------------
+\setlength{\parindent}{0pt}
+\begin{minipage}[t]{\rightcolwidth}
+\begin{center}\fontfamily{\sfdefault}\selectfont \color{black!70}
+{\small King Ceta \icon{\faEnvelopeO}{cvgreen}{} alphonsehaba27@gmail.com \icon{\faMapMarker}{cvgreen}{} 117198, Miklykho-Maklaya street 19 \icon{\faPhone}{cvgreen}{} 007/901 3889473 \newline\icon{\faAt}{cvgreen}{} \protect\url{ZoulouCompany.com}
+}
+\end{center}
+\end{minipage}
+
+\end{paracol}
+
+\end{document}
