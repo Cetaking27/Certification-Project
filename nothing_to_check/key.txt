@@ -1,0 +1,7 @@
+API Key "Consumer " = GygZ2aF48n3CoY79lNnW9Prmm
+API key Secret  "Consumer Secret"= NtS5u40Hv14jdmJg0zh4VWagWRgHUgUAP2776XXOktscZEgqZF
+
+Access Token = 1956479465090920448-NsT8T3UaUaBxV2VAyAbNwca8rWiFMw
+Access Toekn Secret = upOMwksHL9Glq5OmnPgo13nzgeb7VoHGz6aJ9S0X40JKw
+
+bearer Token = AAAAAAAAAAAAAAAAAAAAAPph3gEAAAAA%2FDHU3bZhO%2BemVss%2Bti398WB5hcA%3DrCfa0MwsxTUJC4ZsJ6TePAOiWFvHlFxUAFIpkl1QTCviHiDv0Y
