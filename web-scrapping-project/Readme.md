@@ -33,7 +33,7 @@ The process begins by providing the scraper with URLs of the target websites. Th
 
 In this project, we will use Python along with Selenium WebDriver to practice web scraping, with the main goal of understanding how web scraping works. To achieve this, we will implement our scraping tasks using both the Edge and Chrome browsers.
 
-[link to the project]()
+[link to the project](https://github.com/Cetaking27/Certification-Project/blob/main/web-scrapping-project/minnin_data.ipynb)
 
 ## ⚠️ Disclaimer :
 
