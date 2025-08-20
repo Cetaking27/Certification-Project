@@ -32,6 +32,6 @@ Some real explanations can be found right here :
 
         Let's have fun together !!!
 
-Get our code here : ['Rock paper scissors']('https://github.com/Cetaking27/Certification-Project/blob/main/python_Basic_Project/Project_1/rock_paper_scissors.py')
+Get our code here : <a href='https://github.com/Cetaking27/Certification-Project/blob/main/python_Basic_Project/Project_1/rock_paper_scissors.py'> 'Rock paper scissors'] </a>
 
 </span>
