@@ -27,10 +27,11 @@ The rules follow the classic “Rock Paper Scissors” game, but with two new ch
 - Spock vaporizes Rock.
 - Rock breaks Scissors.
 
-Some real explanations can be found right here : [Games Reviews]('https://en.wikipedia.org/wiki/Rock_paper_scissors')
+Some real explanations can be found right here : 
+<a href='https://en.wikipedia.org/wiki/Rock_paper_scissors'>[Games Reviews]</a>
 
         Let's have fun together !!!
 
-        Get our code here : !['Rock paper scissors']('')
+Get our code here : <a href='https://github.com/Cetaking27/Certification-Project/blob/main/python_Basic_Project/Project_1/rock_paper_scissors.py'> ['Rock paper scissors'] </a>
 
 </span>
