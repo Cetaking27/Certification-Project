@@ -27,7 +27,7 @@ The rules follow the classic “Rock Paper Scissors” game, but with two new ch
 - Spock vaporizes Rock.
 - Rock breaks Scissors.
 
-Some real explanations can be found right here : [Games Reviews]('https://en.wikipedia.org/wiki/Rock_paper_scissors')
+Some real explanations can be found right here : ![Games Reviews]('https://en.wikipedia.org/wiki/Rock_paper_scissors')
 
         Let's have fun together !!!
 
