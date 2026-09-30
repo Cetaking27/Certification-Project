@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "../../sql-authentication-log-analysis"
+		},
+		{
+			"path": "../../.."
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"mysqlOptions": {
+					"authProtocol": "default",
+					"enableSsl": "Disabled"
+				},
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 3306,
+				"driver": "MySQL",
+				"username": "root",
+				"database": "fakedb",
+				"name": "local-mysql",
+				"askForPassword": true
+			}
+		]
+	}
+}
