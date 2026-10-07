@@ -1,0 +1,41 @@
+AdjustmentID,ReferenceID,AdjustmentDate,AdjustmentType,Department,OriginalAmount,OriginalVAT,AdjustmentAmount,VATAdjustment,Reason
+ADJ00001,SO58079,2013-05-16 00:00:00,Sales Correction,Finance,4.99,0.6487,-0.24950000000000003,-0.032435000000000005,5% simulated Sales correction
+ADJ00002,SO71952,2013-11-29 00:00:00,Sales Correction,Finance,218.628,28.42164,-10.9314,-1.4210820000000002,5% simulated Sales correction
+ADJ00003,SO62775,2013-07-25 00:00:00,Sales Correction,Finance,24.99,3.2487,-1.2495,-0.162435,5% simulated Sales correction
+ADJ00004,SO49466,2012-08-28 00:00:00,Sales Correction,Finance,22.794,2.96322,-1.1397000000000002,-0.14816100000000001,5% simulated Sales correction
+ADJ00005,SO48043,2012-04-30 00:00:00,Sales Correction,Finance,2818.764,366.43932,-140.93820000000002,-18.321966,5% simulated Sales correction
+ADJ00006,SO67124,2013-09-26 00:00:00,Sales Correction,Finance,4.99,0.6487,-0.24950000000000003,-0.032435000000000005,5% simulated Sales correction
+ADJ00007,SO60078,2013-06-13 00:00:00,Sales Correction,Finance,53.99,7.018700000000001,-2.6995000000000005,-0.35093500000000005,5% simulated Sales correction
+ADJ00008,SO71794,2013-11-29 00:00:00,Sales Correction,Finance,633.72,82.3836,-31.686000000000003,-4.11918,5% simulated Sales correction
+ADJ00009,SO72831,2013-12-11 00:00:00,Sales Correction,Finance,4.99,0.6487,-0.24950000000000003,-0.032435000000000005,5% simulated Sales correction
+ADJ00010,SO51128,2012-12-28 00:00:00,Sales Correction,Finance,121.47,15.7911,-6.0735,-0.789555,5% simulated Sales correction
+ADJ00011,SO60350,2013-06-17 00:00:00,Sales Correction,Finance,24.99,3.2487,-1.2495,-0.162435,5% simulated Sales correction
+ADJ00012,SO70283,2013-11-07 00:00:00,Sales Correction,Finance,4.99,0.6487,-0.24950000000000003,-0.032435000000000005,5% simulated Sales correction
+ADJ00013,SO47378,2012-02-29 00:00:00,Sales Correction,Finance,501.66,65.2158,-25.083000000000002,-3.26079,5% simulated Sales correction
+ADJ00014,SO51144,2012-12-28 00:00:00,Sales Correction,Finance,44.082,5.73066,-2.2041,-0.28653300000000004,5% simulated Sales correction
+ADJ00015,SO71138,2013-11-19 00:00:00,Sales Correction,Finance,34.99,4.5487,-1.7495000000000003,-0.22743500000000003,5% simulated Sales correction
+ADJ00016,SO63030,2013-07-29 00:00:00,Sales Correction,Finance,4.99,0.6487,-0.24950000000000003,-0.032435000000000005,5% simulated Sales correction
+ADJ00017,SO44784,2011-05-31 00:00:00,Sales Correction,Finance,15.5595,2.022735,-0.7779750000000001,-0.10113675,5% simulated Sales correction
+ADJ00018,SO47675,2012-03-30 00:00:00,Sales Correction,Finance,86.5212,11.247755999999999,-4.32606,-0.5623878,5% simulated Sales correction
+ADJ00019,SO46960,2012-01-29 00:00:00,Sales Correction,Finance,1409.382,183.21966,-70.46910000000001,-9.160983,5% simulated Sales correction
+ADJ00020,SO67513,2013-10-01 00:00:00,Sales Correction,Finance,53.99,7.018700000000001,-2.6995000000000005,-0.35093500000000005,5% simulated Sales correction
+ADJ00021,SO57534,2013-05-06,Purchase Correction,Finance,1265.6195,253.1239,-63.280975000000005,-12.656195,'5%' simulated Purchase correction
+ADJ00022,SO66357,2013-09-14,Purchase Correction,Finance,41.5723,8.31446,-2.078615,-0.41572300000000006,'5%' simulated Purchase correction
+ADJ00023,SO64538,2013-08-19,Purchase Correction,Finance,308.2179,61.64358,-15.410895,-3.082179,'5%' simulated Purchase correction
+ADJ00024,SO70516,2013-11-10,Purchase Correction,Finance,6.9223,1.38446,-0.346115,-0.069223,'5%' simulated Purchase correction
+ADJ00025,SO64469,2013-08-18,Purchase Correction,Finance,3.7363,0.74726,-0.186815,-0.037363,'5%' simulated Purchase correction
+ADJ00026,SO69834,2013-11-01,Purchase Correction,Finance,41.5723,8.31446,-2.078615,-0.41572300000000006,'5%' simulated Purchase correction
+ADJ00027,SO73907,2013-12-25,Purchase Correction,Finance,2.9733,0.59466,-0.14866500000000002,-0.029733,'5%' simulated Purchase correction
+ADJ00028,SO62217,2013-07-15,Purchase Correction,Finance,1082.51,216.502,-54.1255,-10.8251,'5%' simulated Purchase correction
+ADJ00029,SO63007,2013-07-29,Purchase Correction,Finance,9.3463,1.86926,-0.467315,-0.093463,'5%' simulated Purchase correction
+ADJ00030,SO68160,2013-10-11,Purchase Correction,Finance,1251.9813,250.39626,-62.599064999999996,-12.519813000000001,'5%' simulated Purchase correction
+ADJ00031,SO72560,2013-12-07,Purchase Correction,Finance,0.8565,0.1713,-0.042825,-0.008565000000000001,'5%' simulated Purchase correction
+ADJ00032,SO73514,2013-12-20,Purchase Correction,Finance,3.7363,0.74726,-0.186815,-0.037363,'5%' simulated Purchase correction
+ADJ00033,SO73119,2013-12-15,Purchase Correction,Finance,1.8663,0.37326,-0.09331500000000001,-0.018663,'5%' simulated Purchase correction
+ADJ00034,SO74856,2014-01-20,Purchase Correction,Finance,1.8663,0.37326,-0.09331500000000001,-0.018663,'5%' simulated Purchase correction
+ADJ00035,SO48261,2012-05-26,Purchase Correction,Finance,486.7066,97.34132,-24.33533,-4.867066,'5%' simulated Purchase correction
+ADJ00036,SO59108,2013-05-30,Purchase Correction,Finance,0.8565,0.1713,-0.042825,-0.008565000000000001,'5%' simulated Purchase correction
+ADJ00037,SO62985,2013-07-28,Purchase Correction,Finance,1251.9813,250.39626,-62.599064999999996,-12.519813000000001,'5%' simulated Purchase correction
+ADJ00038,SO66936,2013-09-23,Purchase Correction,Finance,23.749,4.7498,-1.18745,-0.23748999999999998,'5%' simulated Purchase correction
+ADJ00039,SO62991,2013-07-28,Purchase Correction,Finance,1554.9479,310.98958,-77.747395,-15.549479,'5%' simulated Purchase correction
+ADJ00040,SO47587,2012-03-18,Purchase Correction,Finance,1320.6838,264.13676,-66.03419000000001,-13.206838,'5%' simulated Purchase correction
