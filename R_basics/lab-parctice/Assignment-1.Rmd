@@ -1,0 +1,823 @@
+---
+title: "Assignment-1"
+author: "Prepared by: Rasheedat Abdulazeez & Alphonse Haba"
+date: "10-07-2026"
+output: 
+  html_document: default
+  slidy_presentation: default
+  powerpoint_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## RII: Data Analysis and Visualization
+
+```{r load_libraries, echo = TRUE, results='hide', message=FALSE}
+#We need to import libraries that we will be needing using the code below
+
+library("dplyr")  
+library("stringr")
+library("ggplot2")  
+library("Hmisc") 
+
+```
+
+```{r load_datasets, echo = TRUE, include=TRUE}
+
+#We load the three CSV files into separate data frames.
+
+journal_data <- read.csv("api_journal11-13-17.csv")
+price_data <- read.csv("api_price11-13-17.csv")
+influence_data <- read.csv("estimated-article-influence-scores-2015.csv")
+
+```
+### Question 1: Identify numeric and categorical variables and their data types. Identify the number of columns and rows per file.
+
+### Undertsanding the structure of our datasets
+
+```{r dataset_dimensions, echo = TRUE, include=TRUE}
+
+#We check the number of rows and columns in each of the dataset
+dim(journal_data)
+dim(price_data)
+dim(influence_data)
+```
+
+```{r inspect_head, echo = TRUE, include=TRUE}
+
+# We display the first six rows of each dataset.
+# This helps us see the column names and get an initial idea of what the data looks like.
+
+head(journal_data)
+head(price_data)
+head(influence_data)
+```
+```{r inspect_tail, echo = TRUE, include=TRUE}
+
+# We display the last six rows of each datasets.
+# This allows us to check whether the ending records look consistent with the beginning of the datasets.
+
+tail(journal_data)
+tail(price_data)
+tail(influence_data)
+```
+```{r dataset_glimpse, echo = TRUE, include=TRUE}
+
+# We use glimpse() to get a compact overview of each dataset.
+# It shows the number of rows and columns, variable names, data types,
+# and a small sample of the values.
+
+glimpse(journal_data)
+glimpse(price_data)
+glimpse(influence_data)
+```
+
+```{r dataset_summary, echo = TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+# We generate a summary of each dataset.
+# This helps us identify ranges, central values, missing values,
+# and the distribution of different variables.
+
+summary(journal_data)
+summary(price_data)
+summary(influence_data)
+```
+
+
+```{r variable_types, echo = TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+# We check the R data type of every variable in each dataset.
+# This helps us determine how R currently stores each variable.
+
+sapply(journal_data, class)
+sapply(price_data, class)
+sapply(influence_data, class)
+
+```
+
+### Checking the number of unique values
+```{r categorical_values_journal_dataset, echo = TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+# We check the number of unique values in selected categorical variables.
+# This helps us understand how many different categories or labels exist.
+
+length(unique(journal_data$issn))
+length(unique(journal_data$journal_name))
+length(unique(journal_data$pub_name))
+length(unique(journal_data$is_hybrid))
+length(unique(journal_data$category))
+length(unique(journal_data$url))
+```
+### Question 2: Identify the column to join the data files and the join type. Perform the operations to compile a single dataset. Identify the resulting number of rows and columns.
+
+### Identifying the Join Columns
+
+```{r identify_join_columns, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We check the names of the columns in each dataset.
+# This helps us identify the variables that can be used
+# to connect the datasets.
+
+names(journal_data)
+names(price_data)
+names(influence_data)
+```
+```{r inspect_join_columns, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We display the first few values of the columns that will be used for joining the datasets.
+# This helps us confirm that the columns contain journal identifiers.
+
+head(journal_data$issn)
+head(price_data$journal_id)
+head(influence_data$issn)
+```
+```{r check_join_duplicates, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We check whether the join columns contain duplicate values. Duplicate values can cause one row in one dataset to match
+# multiple rows in another dataset.
+
+sum(duplicated(journal_data$issn))
+sum(duplicated(price_data$journal_id))
+sum(duplicated(influence_data$issn))
+
+```
+
+```{r influence_journal_join, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We use influence_data as our main dataset because it contains the proj_ai variable, which is the target variable for the proposed project.
+# We use a left join so that all records from influence_data are kept.
+# Both datasets use issn as the join column.
+
+combined_data <- left_join(
+  influence_data,
+  journal_data,
+  by = "issn"
+)
+
+# We then check the dimensions of the joined dataset.
+# This tells us how many rows and columns resulted from the join.
+
+dim(combined_data)
+```
+```{r price_join, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We use a left join to add the price information to our combined dataset.
+# The issn column in combined_data is matched with the journal_id column
+# in price_data.
+# We use a left join so that all records from combined_data are retained.
+
+combined_data <- left_join(
+  combined_data,
+  price_data,
+  by = c("issn" = "journal_id")
+)
+
+# We check the dimensions after adding the price data.
+# This allows us to see whether the number of rows changed.
+
+dim(combined_data)
+```
+
+### Note: 
+### A direct join of the three datasets creates 5,425 rows instead of the original 3,615 influence records because some journals have multiple records in the price dataset.
+
+```{r inspect_duplicate_price_records, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We identify journal IDs that appear more than once in price_data.
+# This helps us see how multiple price records are stored for the same journal.
+
+duplicate_journal_ids <- price_data %>%
+  group_by(journal_id) %>%
+  summarise(record_count = n()) %>%
+  filter(record_count > 1)
+
+# We display the first few journal IDs that have multiple records.
+# This helps us inspect the structure of the duplicated records.
+
+head(duplicate_journal_ids)
+```
+
+```{r inspect_price_history, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We select one journal ID that has multiple price records.
+# We then display all of its price records.
+# This helps us understand whether the records represent different dates
+# or other types of price information.
+
+price_data %>%
+  filter(journal_id == duplicate_journal_ids$journal_id[1])
+```
+### Question 2 Findings
+
+The three datasets were joined using the journal identifier. The `journal_data` and `influence_data` datasets use the `issn` column, while the `price_data` dataset uses `journal_id` to identify the journal.
+
+We used left join because `influence_data` contains the `proj_ai` variable, which is the target variable for the machine learning project mentioned from our assignment instruction. Using `influence_data` as the main dataset allows us to retain all of its records while adding information from the other datasets.
+
+First, `influence_data` was joined with `journal_data` using `issn`. The resulting dataset contained 3,615 rows and 13 columns. The price data was then joined using `issn` from the combined dataset and `journal_id` from `price_data`.
+
+The final combined dataset contains **5,425 rows and 19 columns**. The number of rows increased because some journals have multiple records in the price dataset. These records will be considered during the data-cleaning process in the following questions.
+
+### Question: 3
+Identify the number/percent of missing data per column. Decide whether any columns should be dropped based on these results and drop them if necessary. Additionally, drop any columns that you consider irrelevant for the project.
+
+### Checking Missing Values
+
+```{r missing_values_count, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We count the number of missing values in each column.
+# The is.na() function identifies missing values.
+# The colSums() function adds the missing values for each column.
+
+missing_count <- colSums(is.na(combined_data))
+
+# We display the number of missing values in each column.
+
+missing_count
+```
+### Calculating the percentage of missing values
+```{r missing_values_percentage, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We calculate the percentage of missing values in each column.
+# We divide the number of missing values by the total number of rows
+# and multiply by 100.
+
+missing_percent <- (missing_count / nrow(combined_data)) * 100
+
+# We display the percentage of missing values for each column.
+
+missing_percent
+```
+### Lets put the results together
+
+Instead of looking at two separate outputs, we are going to create one table that is easier to understand.
+```{r missing_values_summary, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We combine the missing-value count and percentage into one table.
+# This makes it easier to review the missing data and decide
+# whether any variables should be removed.
+
+missing_summary <- data.frame(
+  variable = names(missing_count),
+  missing_count = as.numeric(missing_count),
+  missing_percent = as.numeric(missing_percent)
+)
+
+# We display the missing-value summary.
+
+missing_summary
+```
+
+### Let's sort the table from the **highest percentage of missing data to the lowest**.
+```{r missing_values_sorted, echo = TRUE, include = TRUE, message = FALSE, warning = FALSE}
+
+# We sort the missing-value summary from the highest percentage of missing data to the lowest.
+# This makes it easier to identify variables with substantial amounts of missing information.
+
+missing_summary <- missing_summary %>%
+  arrange(desc(missing_percent))
+
+missing_summary
+```
+```{r inspect_combined_columns, echo = TRUE, include = TRUE}
+
+# We display the column names of the combined dataset.
+# This allows us to review all variables before deciding which columns should be removed from the dataset.
+
+names(combined_data)
+```
+```{r inspect_column_classes, echo = TRUE, include = TRUE}
+
+# We check the data type of each variable in the combined dataset.
+# This helps us confirm which variables are identifiers, text, numeric values, or other types before cleaning the data.
+
+sapply(combined_data, class)
+```
+```{r compare_the_jounarl_names, echo = TRUE, include = TRUE}
+# We compare the two journal name columns.
+# This helps us checks whether the journal names are the same in both datasets.
+
+sum(combined_data$journal_name.x != combined_data$journal_name.y)
+```
+```{r display_the_jounarl_names_sidebyside, echo = TRUE, include = TRUE}
+# We display both journal name columns side by side.
+# This helps us see how the values differ between the two datasets.
+
+head(combined_data[, c("journal_name.x", "journal_name.y")])
+tail(combined_data[, c("journal_name.x", "journal_name.y")])
+```
+```{r clean_columns, echo = TRUE, include = TRUE}
+# We create a new dataset containing only the columns that are
+# relevant to the machine learning project.
+# We keep price because it may be useful for predicting journal influence.
+# Missing values in price will be handled later.
+
+cleaned_data <- combined_data %>%
+  select(
+    issn,
+    journal_name.y,
+    pub_name,
+    is_hybrid,
+    category,
+    citation_count_sum,
+    paper_count_sum,
+    avg_cites_per_paper,
+    proj_ai,
+    proj_ai_year,
+    price
+  )
+```
+
+```{r cleaned_dimensions, echo = TRUE, include = TRUE}
+# We check the number of rows and columns after removing the irrelevant and duplicate columns.
+
+dim(cleaned_data)
+```
+```{r cleaned_column_names, echo = TRUE, include = TRUE}
+# We check the column names to confirm that the selected variables are the only columns remaining.
+
+names(cleaned_data)
+```
+
+```{r rename_journal_name, echo = TRUE, include = TRUE}
+# We rename journal_name.y to journal_name because the .y suffix from our joint table is no longer needed after removing the duplicate journal name column.
+
+cleaned_data <- cleaned_data %>%
+  rename(
+    journal_name = journal_name.y
+  )
+```
+
+```{r remaining_missing_values, echo = TRUE, include = TRUE}
+# We check the remaining missing values in the cleaned dataset.
+
+colSums(is.na(cleaned_data))
+```
+### Question 3 Findings
+
+The missing value analysis showed that most variables did not contain missing values. The `license` variable had the highest amount of missing data at approximately 95.02%, so it was removed because it was also not relevant to the planned machine learning project. The variables `id` and `influence_id` were also removed because they are identifiers rather than meaningful explanatory variables. The URL variables were removed because web addresses do not provide useful information for predicting journal influence.
+
+The automatically generated `X` column was removed because it was only an index and did not represent a meaningful characteristic of a journal. The `date_stamp` variable was also removed because the price-record date was not required for the planned analysis.
+
+The two journal name columns contained the same journal information but used different capitalization. For example, one column contained "3d research" while the other contained "3d Research". Therefore, `journal_name.x` was removed and `journal_name.y` was retained and renamed to `journal_name`.
+
+The `price` variable was retained even though it contained 917 missing values, representing approximately 16.90% of the combined dataset. Price may provide useful information for the analysis, so it will be considered for missing-value treatment later.
+The variables `citation_count_sum`, `paper_count_sum`, `avg_cites_per_paper`, and `proj_ai` each contained only 13 missing values, representing approximately 0.24% of the dataset. These variables were retained because they are relevant to the analysis. The missing values will be addressed in our later analysis. 
+
+### Question: 4
+Identify any data inconsistencies and fix them (e.g.: datatype conversion, string reformatting, invalid data, etc.).
+
+### Before we do this, recall in question 3, after our combined data, we did notice that "journal_name.x" and "journal_name.y" contains exact same values, but when we used "head(combined_data[, c("journal_name.x", "journal_name.y")])
+
+tail(combined_data[, c("journal_name.x", "journal_name.y")])" it showed that they both contain exact same value but had incosistencies because there were capitalization issues and some other incosistencies, and so we dropped one of the column. 
+
+We kept the properly formatted journal_name from the journal dataset, so that inconsistency has already been resolved.
+
+### Moving on:
+
+```{r check_is_hybrid, echo = TRUE, include = TRUE}
+# We check the unique values of is_hybrid.
+# This confirms whether the variable contains only the expected values of 0 and 1 before converting it to a factor. As mentioned from our dataset description from the assignment instruction. 
+
+unique(cleaned_data$is_hybrid)
+```
+### Checking the years
+
+`proj_ai_year` is currently an integer, which is appropriate for a year. We don't need to convert it to a factor automatically, but let's inspect its values for anything unusual.
+
+
+```{r check_proj_ai_year, echo = TRUE, include = TRUE}
+# We check the unique values of proj_ai_year.
+# This helps us identify any unexpected or invalid year values.
+
+unique(cleaned_data$proj_ai_year)
+```
+### Check the numeric variables
+
+We also want to make sure the numeric variables do not contain obvious invalid negative values.
+
+
+```{r check_numeric_values, echo = TRUE, include = TRUE}
+# We check the minimum values of the numeric variables.
+# This helps us identify potentially invalid negative values.
+
+min(cleaned_data$citation_count_sum, na.rm = TRUE)
+min(cleaned_data$paper_count_sum, na.rm = TRUE)
+min(cleaned_data$avg_cites_per_paper, na.rm = TRUE)
+min(cleaned_data$proj_ai, na.rm = TRUE)
+min(cleaned_data$price, na.rm = TRUE)
+```
+### Let's convert is_hybrid to a factor.
+```{r convert_is_hybrid, echo = TRUE, include = TRUE}
+# We convert is_hybrid from an integer to a factor.
+# The variable represents two categories rather than a continuous
+# numeric measurement: 1 means the journal has electronic and printed versions, while 0 means it has only an electronic version.
+
+cleaned_data$is_hybrid <- as.factor(cleaned_data$is_hybrid)
+class(cleaned_data$is_hybrid)
+levels(cleaned_data$is_hybrid)
+```
+### Question 4 Findings
+
+Several checks were performed to identify data inconsistencies and invalid values. The `journal_name` values originally appeared in different capitalization formats between the two source datasets. For example, one dataset contained `3d research`, while the other contained `3d Research`. The duplicate journal-name column was removed during Question 3, and the consistently formatted journal name was retained.
+
+The `is_hybrid` variable was originally stored as an integer. However, the variable represents two categories: `0` for electronic-only journals and `1` for journals with both electronic and printed versions. Therefore, we converted it from an integer to a factor so that R treats it as a categorical variable.
+
+The `proj_ai_year` variable contained only the value 2015, which is consistent with the dataset description, so no change was required. we also checked the numeric variables for invalid negative values. The minimum values were zero for `citation_count_sum`, `avg_cites_per_paper`, `proj_ai`, and `price`, while `paper_count_sum` had a minimum value of one. Therefore, no negative or obviously invalid numeric values were identified.
+
+After these checks and the datatype conversion, no additional data inconsistencies requiring correction were identified.
+
+### Question: 5
+Based on point 3, perform data inputting on the columns that require it. Optionally, you can remove rows with missing values.
+
+```{r missing_proj_ai, echo = TRUE, include = TRUE}
+# We identify the rows where the target variable proj_ai is missing.
+# This helps us determine whether these observations can be retained
+# or should be removed from the machine learning dataset.
+
+missing_proj_ai <- cleaned_data %>%
+  filter(is.na(proj_ai))
+
+missing_proj_ai
+```
+
+### Then we check how many there are:
+
+```{r count_missing_proj_ai, echo = TRUE, include = TRUE}
+# We count the number of observations with missing proj_ai values.
+# These observations cannot be used as training examples when proj_ai
+# is the target variable.
+
+nrow(missing_proj_ai)
+```
+```{r summarize_missing_numeric, echo = TRUE, include = TRUE}
+# We calculate summary statistics for the numeric variables
+# that contain missing values.
+# This helps us decide whether mean or median imputation
+# is appropriate for each variable.
+
+summary(cleaned_data$price)
+summary(cleaned_data$citation_count_sum)
+summary(cleaned_data$paper_count_sum)
+summary(cleaned_data$avg_cites_per_paper)
+```
+```{r calculate_imputation_medians, echo = TRUE, include = TRUE}
+# We calculate the median of each numeric variable that contains
+# missing values.
+# These median values will be used to replace the missing predictor values.
+
+median_price <- median(cleaned_data$price, na.rm = TRUE)
+median_citation_count <- median(cleaned_data$citation_count_sum, na.rm = TRUE)
+median_paper_count <- median(cleaned_data$paper_count_sum, na.rm = TRUE)
+median_avg_cites <- median(cleaned_data$avg_cites_per_paper, na.rm = TRUE)
+
+median_price
+median_citation_count
+median_paper_count
+median_avg_cites
+```
+```{r remove_missing_proj_ai, echo = TRUE, include = TRUE}
+# We remove observations where the target variable proj_ai is missing.
+# Since proj_ai is the value our future regression model will predict,
+# we do not create artificial target values using mean or median.
+
+cleaned_data_no_target_missing <- cleaned_data %>%
+  filter(!is.na(proj_ai))
+```
+
+
+### Let's Check the dimensions:
+
+```{r check_target_rows, echo = TRUE, include = TRUE}
+# We check the dimensions after removing the 13 observations
+# with missing target values.
+
+dim(cleaned_data_no_target_missing)
+```
+### Now we'll replace the missing values with the medians we calculated.
+
+```{r impute_missing_values, echo = TRUE, include = TRUE}
+# We replace missing values in the numeric predictor variables
+# with their corresponding median values.
+# Median imputation is used because these variables contain
+# large values that can strongly affect the mean.
+
+cleaned_data_no_target_missing$citation_count_sum[
+  is.na(cleaned_data_no_target_missing$citation_count_sum)
+] <- median_citation_count
+
+cleaned_data_no_target_missing$paper_count_sum[
+  is.na(cleaned_data_no_target_missing$paper_count_sum)
+] <- median_paper_count
+
+cleaned_data_no_target_missing$avg_cites_per_paper[
+  is.na(cleaned_data_no_target_missing$avg_cites_per_paper)
+] <- median_avg_cites
+
+cleaned_data_no_target_missing$price[
+  is.na(cleaned_data_no_target_missing$price)
+] <- median_price
+```
+
+### Let's Verify that the missing values are gone
+
+```{r verify_imputation, echo = TRUE, include = TRUE}
+# We check the number of missing values in every column
+# after completing the imputation and removing missing target values.
+
+colSums(is.na(cleaned_data_no_target_missing))
+```
+### Question 5 Findings
+
+The missing-value analysis identified 13 missing observations in the `proj_ai` target variable and missing values in four numeric predictor variables. The 13 observations with missing `proj_ai` values were removed because `proj_ai` is the target variable for the planned regression model. Imputing a value for the target could introduce an artificial outcome that was not observed in the original data.
+
+For the numeric predictor variables, median imputation was selected. The median was preferred over the mean because the variables showed evidence of skewness and large extreme values. For example, `citation_count_sum` had a median of 530.5 compared with a mean of 1,976 and a maximum of 426,949. Similarly, `paper_count_sum` had a median of 273 compared with a mean of 620.6 and a maximum of 104,705. These differences indicate that extreme values could have a strong effect on the mean.
+
+The missing predictor values were therefore replaced using the following medians: 530.5 for `citation_count_sum`, 273 for `paper_count_sum`, 1.911271 for `avg_cites_per_paper`, and 1,845 for `price`.
+
+After the imputation and removal of observations with missing target values, all variables contained zero missing values.
+
+### Question: 6
+Detect and remove duplicates if present. Identify potential outliers in your dataset and decide whether to keep or remove them.
+
+```{r check_duplicate_rows, echo = TRUE, include = TRUE, warning = FALSE}
+# We check whether any complete rows are duplicated.
+# A duplicate row contains exactly the same values in every column.
+
+sum(duplicated(cleaned_data_no_target_missing))
+```
+### we then check duplicate ISSNs
+
+Note, complete duplicate rows aren't the only type of duplication we should investigate.
+
+Because `issn` identifies a journal, let's check whether the same journal appears more than once:
+
+
+```{r check_duplicate_issn, echo = TRUE, include = TRUE}
+# We count duplicated ISSN values.
+# This helps us identify journals that appear in multiple observations.
+
+sum(duplicated(cleaned_data_no_target_missing$issn))
+```
+### Here we are going to identify which ISSNs are repeated
+
+Let's see which journals occur more than once:
+
+```{r repeated_issn, echo = TRUE, include = TRUE}
+# We identify the ISSNs that occur more than once.
+# This allows us to examine whether repeated records are
+# genuine duplicate observations or separate records.
+
+repeated_issn <- cleaned_data_no_target_missing %>%
+  count(issn) %>%
+  filter(n > 1) %>%
+  arrange(desc(n))
+
+###repeated_issn (you can uncomment this, its taking too much space when we knit so it didn't feel so cool)
+```
+### Lets look at the actual exact duplicates
+
+```{r inspect_duplicate_rows, echo = TRUE, include = TRUE}
+# We display some of the rows that are exact duplicates.
+# This helps us verify that the repeated rows contain exactly
+# the same information before deciding whether to remove them.
+
+duplicate_rows <- cleaned_data_no_target_missing[
+  duplicated(cleaned_data_no_target_missing),
+]
+
+head(duplicate_rows)
+```
+### Then let's see how many rows remain if we remove **only exact duplicates**:
+
+```{r remove_exact_duplicates_check, echo = TRUE, include = TRUE}
+# We create a temporary dataset without exact duplicate rows.
+# This allows us to see how many observations would remain
+# without changing our main cleaned dataset yet.
+
+data_without_duplicates <- cleaned_data_no_target_missing %>%
+  distinct()
+
+dim(data_without_duplicates)
+```
+### Here we are going to remove the exact duplicates
+```{r remove_duplicate_rows, echo = TRUE, include = TRUE}
+# We remove exact duplicate rows from the dataset.
+# Since these rows contain identical information, keeping them
+# would give repeated observations without adding new information.
+
+cleaned_data_final <- cleaned_data_no_target_missing %>%
+  distinct()
+```
+
+### Checking the dimension 
+```{r check_duplicate_free_dimensions, echo = TRUE, include = TRUE}
+# We check the dimensions after removing the exact duplicate rows.
+# This confirms how many observations remain for the next stage
+# of data preparation.
+
+dim(cleaned_data_final)
+```
+### Checking for outliers 
+
+```{r identify_outliers, echo = TRUE, include = TRUE}
+# We calculate the lower and upper limits for identifying potential
+# outliers using the IQR method.
+# Values below the lower limit or above the upper limit are flagged.
+
+citation_iqr <- IQR(cleaned_data_final$citation_count_sum)
+citation_lower <- quantile(cleaned_data_final$citation_count_sum, 0.25) - 1.5 * citation_iqr
+citation_upper <- quantile(cleaned_data_final$citation_count_sum, 0.75) + 1.5 * citation_iqr
+
+paper_iqr <- IQR(cleaned_data_final$paper_count_sum)
+paper_lower <- quantile(cleaned_data_final$paper_count_sum, 0.25) - 1.5 * paper_iqr
+paper_upper <- quantile(cleaned_data_final$paper_count_sum, 0.75) + 1.5 * paper_iqr
+
+avg_cites_iqr <- IQR(cleaned_data_final$avg_cites_per_paper)
+avg_cites_lower <- quantile(cleaned_data_final$avg_cites_per_paper, 0.25) - 1.5 * avg_cites_iqr
+avg_cites_upper <- quantile(cleaned_data_final$avg_cites_per_paper, 0.75) + 1.5 * avg_cites_iqr
+
+price_iqr <- IQR(cleaned_data_final$price)
+price_lower <- quantile(cleaned_data_final$price, 0.25) - 1.5 * price_iqr
+price_upper <- quantile(cleaned_data_final$price, 0.75) + 1.5 * price_iqr
+
+proj_ai_iqr <- IQR(cleaned_data_final$proj_ai)
+proj_ai_lower <- quantile(cleaned_data_final$proj_ai, 0.25) - 1.5 * proj_ai_iqr
+proj_ai_upper <- quantile(cleaned_data_final$proj_ai, 0.75) + 1.5 * proj_ai_iqr
+```
+
+### Next we'll count how many observations fall outside those boundaries.
+```{r count_outliers, echo = TRUE, include = TRUE}
+# We count the observations that fall outside the IQR boundaries.
+# This tells us how many potential outliers each numeric variable contains.
+
+sum(cleaned_data_final$citation_count_sum < citation_lower |
+      cleaned_data_final$citation_count_sum > citation_upper)
+
+sum(cleaned_data_final$paper_count_sum < paper_lower |
+      cleaned_data_final$paper_count_sum > paper_upper)
+
+sum(cleaned_data_final$avg_cites_per_paper < avg_cites_lower |
+      cleaned_data_final$avg_cites_per_paper > avg_cites_upper)
+
+sum(cleaned_data_final$price < price_lower |
+      cleaned_data_final$price > price_upper)
+
+sum(cleaned_data_final$proj_ai < proj_ai_lower |
+      cleaned_data_final$proj_ai > proj_ai_upper)
+```
+### Let's inspect the price outlier
+```{r inspect_price_outlier, echo = TRUE, include = TRUE}
+# We identify the observation that was flagged as a potential
+# price outlier using the IQR method.
+# This allows us to determine whether the value is an error
+# or a legitimate observation.
+
+cleaned_data_final %>%
+  filter(
+    price < price_lower |
+    price > price_upper
+  )
+```
+### And let's also see the actual IQR boundaries:
+
+```{r price_outlier_boundaries, echo = TRUE, include = TRUE}
+# We display the lower and upper IQR boundaries for price.
+# This helps us understand why the observation was identified
+# as a potential outlier.
+
+price_lower
+price_upper
+```
+```{r fix_invalid_price, echo = TRUE, include = TRUE}
+# The price value of -2000 is invalid because a price cannot be negative.
+# We replace this invalid value with NA so it can be handled
+# using the same median-imputation approach used in Question 5.
+
+cleaned_data_final$price[
+  cleaned_data_final$price < 0
+] <- NA
+```
+
+
+### we impute the invalid price with the median
+
+
+```{r impute_invalid_price, echo = TRUE, include = TRUE}
+# We replace the invalid price with the median price.
+# The median was calculated earlier as 1845 and is less affected
+# by extreme values than the mean.
+
+cleaned_data_final$price[
+  is.na(cleaned_data_final$price)
+] <- median_price
+```
+
+### Here we verify that the negative value is gone
+
+```{r verify_price_values, echo = TRUE, include = TRUE}
+# We check the minimum price to make sure there are no
+# negative price values remaining.
+
+min(cleaned_data_final$price)
+```
+### final verification
+**Let's verify two things:**
+1. There are no negative prices.
+2. There are no missing values after our correction.
+
+```{r verify_q6_cleaning, echo = TRUE, include = TRUE}
+# We verify that the final dataset does not contain negative prices
+# or missing values after the duplicate and outlier cleaning steps.
+
+min(cleaned_data_final$price)
+
+colSums(is.na(cleaned_data_final))
+```
+
+### Q6 explanation
+
+We checked for duplicate records using the complete set of variables in the cleaned dataset. we identified 903 exact duplicate rows. These rows contained the same values across all variables, so they were removed using `distinct()`.
+
+Repeated `issn` values were also investigated. There were 1,809 repeated ISSN occurrences. However, these were not automatically removed because the earlier join with the price dataset created multiple records for some journals. Therefore, a repeated ISSN does not necessarily represent a duplicate record. Only exact duplicate rows were removed.
+
+We then examined outliers using the IQR method for the numeric variables. we identified 496 potential outliers in `citation_count_sum`, 401 in `paper_count_sum`, 132 in `avg_cites_per_paper`, 175 in `proj_ai`, and one potential outlier in `price`.
+
+The potential outliers in the citation, paper count, average citation, and `proj_ai` variables were retained because there was no evidence that these values were data entry errors. High citation counts and paper counts can occur naturally for journals with a large number of publications or citations. The `proj_ai` variable is also the target variable for the planned regression model, so its naturally high values should not be removed simply because they are statistically unusual.
+
+The single price outlier was investigated and found to have a value of `-2000`. Since a negative price is not valid for this dataset, we treated the value as invalid data. We thenreplaced it with `NA` and then imputed using the previously calculated median price of 1,845.
+
+After removing exact duplicates and correcting the invalid price, the dataset was retained without removing legitimate statistical outliers.
+
+### Question: 7
+Give a summary of your final dataset, including the number of rows and columns as well as the variables and datatypes.
+
+### Checking dimension of our final dataset
+```{r final_dataset_dimensions, echo = TRUE, include = TRUE}
+# We check the number of rows and columns in the final cleaned dataset.
+# This confirms how many observations and variables remain after cleaning.
+
+dim(cleaned_data_final)
+```
+
+### Review the variable names
+```{r final_dataset_names, echo = TRUE, include = TRUE}
+# We display the names of the variables in the final dataset.
+# This confirms that the variables we kept during the cleaning process
+# are present with the expected names.
+
+names(cleaned_data_final)
+```
+### Lets check the final structure
+
+```{r final_dataset_glimpse, echo = TRUE, include = TRUE}
+# We use glimpse() to review the structure of the final dataset.
+# It shows the variable names, data types, and examples of values.
+
+glimpse(cleaned_data_final)
+```
+
+
+### Seeing the final statistical summary
+
+```{r final_dataset_summary, echo = TRUE, include = TRUE, warning = FALSE}
+# We use summary() to obtain descriptive statistics for the final dataset.
+# This helps us review the ranges and distributions of the numeric variables
+# and the levels of categorical variables.
+
+summary(cleaned_data_final)
+```
+### Lets check for final missing-value 
+
+```{r final_missing_check, echo = TRUE, include = TRUE, warning = FALSE}
+# We confirm that the final dataset contains no missing values.
+# A value of 0 means that the variable has no remaining missing observations.
+
+colSums(is.na(cleaned_data_final))
+```
+
+### Saving our cleaned dataset into a CSV
+
+```{r save_cleaned_dataset, echo = TRUE, include = TRUE}
+# We save the final cleaned dataset as a CSV file.
+# from our R1 lessons from last semester, row.names = FALSE prevents R from adding an unnecessary row-number column.
+
+write.csv(
+  cleaned_data_final,
+  "cleaned_journal_influence_data.csv",
+  row.names = FALSE
+)
+```
+
+### Final Dataset Summary
+
+After completing the data preparation and cleaning steps, the final dataset contains 4,509 rows and 11 columns. The final variables are `issn`, `journal_name`, `pub_name`, `is_hybrid`, `category`, `citation_count_sum`, `paper_count_sum`, `avg_cites_per_paper`, `proj_ai`, `proj_ai_year`, and `price`.
+
+The final dataset contains both categorical and numeric variables. The `is_hybrid` variable is stored as a factor with two levels, 0 and 1. The variables `citation_count_sum`, `paper_count_sum`, `avg_cites_per_paper`, `proj_ai`, and `price` are numeric. The `proj_ai_year` variable is stored as an integer and contains only the value 2015.
+
+The final summary shows that `citation_count_sum` ranges from 0 to 426,949, while `paper_count_sum` ranges from 1 to 104,705. The median values are 499 citations and 262 papers. The `avg_cites_per_paper` variable has a median of 1.857 and ranges from 0 to 26.319. The target variable `proj_ai` has a median of 0.405 and ranges from 0 to 11.367. The `price` variable has a median of 1,845 and ranges from 0 to 7,590.
+
+The final missing-value check shows zero missing values for all 11 variables. The dataset also contains no remaining negative price values after the invalid `-2000` value was corrected during the outlier analysis.
+
+Overall, the dataset has been prepared for the next stage of our proposed project. Exact duplicate rows have been removed, invalid price data has been corrected, missing predictor values have been imputed, observations with missing target values have been removed, and the relevant variables have been retained. The `proj_ai` variable is available as the target variable for the regression analysis in our Assignment II.
