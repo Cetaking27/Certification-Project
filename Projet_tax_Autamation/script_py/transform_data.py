@@ -72,6 +72,7 @@ def transform_internet_sales(
         validate="many_to_one"
     )
 
+
     # 5. Prepare the customer lookup table
     customer_columns = [
         "CustomerKey",
@@ -113,7 +114,7 @@ def transform_internet_sales(
             "SalesOrderLineNumber": "InvoiceLineNumber",
             "OrderQuantity": "Quantity",
             "TotalProductCost": "CostAmount",
-            "TaxAmt": "OutputVAT",
+            "TaxAmt": "OriginalOutputVAT",
             "EnglishProductName": "ProductName",
             "CustomerKey": "BuyerKey"
         }
@@ -157,6 +158,7 @@ def transform_internet_sales(
         "SalesAmount",
         "CostAmount",
         "TaxRate",
+        "OriginalOutputVAT",
         "OutputVAT",
         "Province",
         "TaxCode"
@@ -245,7 +247,7 @@ def transform_reseller_sales(
             "SalesOrderLineNumber": "InvoiceLineNumber",
             "OrderQuantity": "Quantity",
             "TotalProductCost": "CostAmount",
-            "TaxAmt": "OutputVAT",
+            "TaxAmt": "OriginalOutputVAT",
             "EnglishProductName": "ProductName",
             "ResellerKey": "BuyerKey",
             "ResellerName": "BuyerName"
@@ -290,6 +292,7 @@ def transform_reseller_sales(
         "SalesAmount",
         "CostAmount",
         "TaxRate",
+        "OriginalOutputVAT",
         "OutputVAT",
         "Province",
         "TaxCode"
@@ -327,7 +330,8 @@ def build_sales_tables(
 def transform_purchases(
     purchases_df: pd.DataFrame,
     product_df: pd.DataFrame,
-    date_df: pd.DataFrame
+    date_df: pd.DataFrame,
+    tax_rules_table: pd.DataFrame
 ) -> pd.DataFrame:
 
     # 1. Copy the source DataFrame
@@ -399,23 +403,50 @@ def transform_purchases(
         }
     )
 
-    # 8. Add business columns
+    # 8. Add business and tax-related columns (simulation assumptions)
     purchases_table["Department"] = "Purchasing"
+    purchases_table["Province"] = "NB"
+    purchases_table["TaxCode"] = "STANDARD"
 
-    # 9. Organize the final table
+    # Preserve source VAT for subsequent data-quality reconciliation
+    purchases_table = purchases_table.rename(
+        columns={"InputVAT": "OriginalInputVAT"}
+    )
+
+    # 9. Determine tax rate and recoverability for each purchase
+    tax_results = purchases_table.apply(
+        lambda row: get_tax_rule(
+            row["PurchaseDate"],
+            row["TaxCode"],
+            row["Province"],
+            tax_rules_table
+        ),
+        axis=1
+    )
+    purchases_table[["TaxRate", "Recoverable"]] = pd.DataFrame(
+        tax_results.tolist(),
+        index=purchases_table.index,
+        columns=["TaxRate", "Recoverable"]
+    )
+
+    # 10. Tax charged on purchases, before recoverability rules
+    purchases_table["TaxPaid"] = (
+        purchases_table["PurchaseAmount"] * purchases_table["TaxRate"]
+    ).round(2)
+
+    # 11. Eligible input tax credit (simplified simulation)
+    purchases_table["InputVAT"] = (
+        purchases_table["TaxPaid"]
+        * purchases_table["Recoverable"].astype(int)
+    ).round(2)
+
+    # 12. Organize the final table
     purchases_final_columns = [
-        "PurchaseID",
-        "PurchaseDate",
-        "Department",
-        "ProductKey",
-        "ProductName",
-        "PurchaseAmount",
-        "InputVAT"
+        "PurchaseID", "PurchaseDate", "Department", "ProductKey",
+        "ProductName", "PurchaseAmount", "Province", "TaxCode",
+        "TaxRate", "Recoverable", "OriginalInputVAT", "TaxPaid", "InputVAT"
     ]
-
-    purchases_table = purchases_table[
-        purchases_final_columns
-    ]
+    purchases_table = purchases_table[purchases_final_columns]
 
     # 10. Return the transformed DataFrame
     return purchases_table
@@ -656,7 +687,9 @@ def get_tax_rule(
 ) -> tuple[float,bool]:
 
     transaction_date = pd.to_datetime(transaction_date)
-    
+    if pd.isna(transaction_date):
+        raise ValueError("Missing or invalid transaction date")
+
     if province not in tax_rules_table["Province"].values:
         raise ValueError("No applicable province data")
 
@@ -675,7 +708,8 @@ def get_tax_rule(
     elif tax_code == "STANDARD":
 
         rule = province_rules[
-            (province_rules["EffectiveFrom"] <= transaction_date)
+            (province_rules["TaxCode"].str.startswith("HST"))
+            & (province_rules["EffectiveFrom"] <= transaction_date)
             &
             (
                 (province_rules["EffectiveTo"] >= transaction_date)
@@ -931,7 +965,8 @@ def main():
     purchases_table = transform_purchases(
         purchases_df,
         product_df,
-        date_df
+        date_df,
+        tax_rules_table
     )
 
     # ---------- PURCHASES TESTS ----------
@@ -1070,32 +1105,6 @@ def main():
     save_tax_adjustments_table(
         tax_adjustments_table
     )
-    #11. Export Purchases table
-    print("\n" + "=" * 50)
-    print("TAX RULES TEST")
-    print("=" * 50)
-    
-    tax_rules_table = create_tax_rules()
-    print(tax_rules_table)
-    print("\nColumns:")
-    print(tax_rules_table.columns.to_list())
-    print("\nData types:")
-    print(tax_rules_table.dtypes)
-    print("\nTax codes:")
-    
-    
-    print("\n" + "=" * 50)
-    print("TAX RULES TEST")
-    print("=" * 50)
-    
-    tax_rate, Recoverable = get_tax_rule(
-        "2013-05-10",
-        "STANDARD",
-        "NB",
-        tax_rules_table
-        )
-    print(tax_rate,Recoverable)
-
 
 
 if __name__ == "__main__":
