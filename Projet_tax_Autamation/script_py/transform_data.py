@@ -1248,7 +1248,7 @@ def main():
     
     save_tax_adjustments_table(
         tax_adjustments_table
-    )
+        )
 
 
 if __name__ == "__main__":
