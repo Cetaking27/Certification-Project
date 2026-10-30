@@ -615,7 +615,7 @@ def create_tax_rules() -> pd.DataFrame:
             "EffectiveTo": "2006-06-30",
             "Recoverable": True
         },
-        # HST historical standard rate
+        # HST First historical standard rate
         {
             "TaxCode": "HST14",
             "TaxDescription": "NB Standard HST",
@@ -625,7 +625,7 @@ def create_tax_rules() -> pd.DataFrame:
             "EffectiveTo": "2007-12-31",
             "Recoverable": True
         },  
-        # HST historical standard rate
+        # HST Second historical standard rate
         {
             "TaxCode": "HST13",
             "TaxDescription": "NB Standard HST",
