@@ -141,7 +141,7 @@ def transform_internet_sales(
     sales_df["OutputVAT"] = (
         sales_df["SalesAmount"]
         * sales_df["TaxRate"]
-    )
+    ).round(2)
 
     # 11. Organize the final table
     final_columns = [
@@ -275,7 +275,7 @@ def transform_reseller_sales(
     sales_df["OutputVAT"] = (
         sales_df["SalesAmount"]
         * sales_df["TaxRate"]
-    )
+    ).round(2)
     
     # 11. Organize the final table
     final_columns = [
@@ -968,6 +968,82 @@ def main():
         date_df,
         tax_rules_table
     )
+    
+    # Validate Output VAT calculations
+    expected_output_vat = (
+        sales_table["SalesAmount"]
+        * sales_table["TaxRate"]
+    ).round(2)
+
+    output_vat_errors = (
+        sales_table["OutputVAT"]
+        .sub(expected_output_vat)
+        .abs()
+        .gt(0.001)
+    )
+
+    print("\nSALES OUTPUT VAT VALIDATION")
+    print("Total sales records:", len(sales_table))
+    print("Incorrect Output VAT calculations:", output_vat_errors.sum())
+
+    print("\nTax rates distribution:")
+    print(sales_table["TaxRate"].value_counts())
+    
+        # Investigate Output VAT differences
+    sales_check = sales_table.copy()
+
+    sales_check["ExpectedVAT_Raw"] = (
+        sales_check["SalesAmount"]
+        * sales_check["TaxRate"]
+    )
+
+    sales_check["ExpectedVAT_Rounded"] = (
+        sales_check["ExpectedVAT_Raw"].round(2)
+    )
+
+    sales_check["Difference_Raw"] = (
+        sales_check["OutputVAT"]
+        - sales_check["ExpectedVAT_Raw"]
+    )
+
+    sales_check["Difference_Rounded"] = (
+        sales_check["OutputVAT"]
+        - sales_check["ExpectedVAT_Rounded"]
+    )
+
+    print("\nOUTPUT VAT DIFFERENCE ANALYSIS")
+
+    print(
+        sales_check[
+            [
+                "InvoiceID",
+                "SalesAmount",
+                "TaxRate",
+                "OutputVAT",
+                "ExpectedVAT_Raw",
+                "ExpectedVAT_Rounded",
+                "Difference_Raw",
+                "Difference_Rounded"
+            ]
+        ].head(10).to_string(index=False)
+    )
+
+    print("\nMaximum absolute raw difference:")
+    print(sales_check["Difference_Raw"].abs().max())
+
+    print("\nMaximum absolute rounded difference:")
+    print(sales_check["Difference_Rounded"].abs().max())
+
+    print("\nErrors without rounding:")
+    print(
+        (sales_check["Difference_Raw"].abs() > 0.000001).sum()
+    )
+    
+    print("\nSALES DATE RANGE")
+    print("Earliest:", sales_table["OrderDate"].min())
+    print("Latest:", sales_table["OrderDate"].max())
+
+    print("\n" + "=" * 50)
 
     # ---------- PURCHASES TESTS ----------
 
@@ -1063,6 +1139,74 @@ def main():
     save_purchases_table(
         purchases_table
     )
+    print("\nPURCHASE TAX VALIDATION")
+
+    print(
+        purchases_table[
+            [
+                "PurchaseID",
+                "PurchaseDate",
+                "PurchaseAmount",
+                "TaxRate",
+                "Recoverable",
+                "TaxPaid",
+                "InputVAT"
+            ]
+        ].head(10)
+    )
+    # Validate calculated purchase tax
+    expected_tax = (
+        purchases_table["PurchaseAmount"]
+        * purchases_table["TaxRate"]
+    ).round(2)
+
+    tax_errors = (
+        purchases_table["TaxPaid"]
+        .sub(expected_tax)
+        .abs()
+        .gt(0.001)
+    )
+
+    print("\nPURCHASE TAX CALCULATION CHECK")
+    print("Incorrect tax calculations:", tax_errors.sum())
+    
+    # Validate recoverable input tax
+    expected_input_vat = (
+        purchases_table["TaxPaid"]
+        * purchases_table["Recoverable"].astype(int)
+    ).round(2)
+
+    input_vat_errors = (
+        purchases_table["InputVAT"]
+        .sub(expected_input_vat)
+        .abs()
+        .gt(0.001)
+    )
+
+    print("\nINPUT VAT RECOVERABILITY CHECK")
+    print("Incorrect Input VAT calculations:", input_vat_errors.sum())
+    print(
+        "Non-recoverable purchases:",
+        (~purchases_table["Recoverable"]).sum()
+    )
+    
+    #temporary VAT testing 
+    # Test a non-recoverable purchase
+    test_purchase = purchases_table.iloc[0].copy()
+
+    test_purchase["Recoverable"] = False
+
+    test_input_vat = (
+        test_purchase["TaxPaid"]
+        * int(test_purchase["Recoverable"])
+    )
+
+    print("\nNON-RECOVERABLE PURCHASE TEST")
+    print("Purchase ID:", test_purchase["PurchaseID"])
+    print("Tax Paid:", test_purchase["TaxPaid"])
+    print("Recoverable:", test_purchase["Recoverable"])
+    print("Expected Input VAT:", test_input_vat)
+    
     #-----------------test taxAdjusment -------------
     
     # 9. Create Tax Adjustments
