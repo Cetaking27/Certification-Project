@@ -18,7 +18,7 @@ Outputs:
 """
 
 import pandas as pd
-
+import numpy as np
 from load_data import load_table
 
 
@@ -450,6 +450,45 @@ def transform_purchases(
 
     # 10. Return the transformed DataFrame
     return purchases_table
+
+#----------- validation function ----------
+def validate_purchases(
+    purchases_table: pd.DataFrame
+) -> pd.DataFrame:
+    
+    purchases = purchases_table.copy()
+    
+    #1.expected tax paid
+    purchases["ExpectedTaxPaid"] = (
+        purchases["PurchaseAmount"] *
+        purchases["TaxRate"]
+    ).round(2)    
+    
+    #2. Expected recoverable input tax
+    purchases["ExpectedInputVAT"] = np.where(
+        purchases["Recoverable"] == True,
+        purchases["ExpectedTaxPaid"],
+        0
+    )
+    #3 Tax paid validation
+    purchases["TaxPaidValidation"] = np.where(
+        (
+            purchases["TaxPaid"] -
+            purchases["ExpectedTaxPaid"]
+        ).abs() < 0.000001,
+        "PASS",
+        "FAIL"
+    )
+    #4. Input VAT validation
+    purchases["InputVATValidation"] = np.where(
+        (
+            purchases["InputVAT"] -
+            purchases["ExpectedInputVAT"]
+        ).abs() < 0.000001,
+        "PASS",
+        "FAIL"
+    )
+    return purchases
 
 
 # ---------- TAX ADJUSTMENTS ----------
