@@ -22,13 +22,146 @@ import numpy as np
 from load_data import load_table
 
 
-# ---------- INTERNET SALES ----------
+# =================================================================
+# 01 — TAX RULES
+# =================================================================
+
+def create_tax_rules() -> pd.DataFrame:
+    
+    # 1. Define New Brunswick tax rules
+    tax_rules_data = [
+        # HST old historical standard rate
+        {
+            "TaxCode": "HST15_OLD",
+            "TaxDescription": "NB Standard HST",
+            "VATRate": 0.15,
+            "Province": "NB",
+            "EffectiveFrom": "1997-04-01",
+            "EffectiveTo": "2006-06-30",
+            "Recoverable": True
+        },
+        # HST First historical standard rate
+        {
+            "TaxCode": "HST14",
+            "TaxDescription": "NB Standard HST",
+            "VATRate": 0.14,
+            "Province": "NB",
+            "EffectiveFrom": "2006-07-01",
+            "EffectiveTo": "2007-12-31",
+            "Recoverable": True
+        },  
+        # HST Second historical standard rate
+        {
+            "TaxCode": "HST13",
+            "TaxDescription": "NB Standard HST",
+            "VATRate": 0.13,
+            "Province": "NB",
+            "EffectiveFrom": "2008-01-01",
+            "EffectiveTo": "2016-06-30",
+            "Recoverable": True
+        },
+        
+        # HST current standard rate
+        {
+            "TaxCode": "HST15",
+            "TaxDescription": "NB Standard HST",
+            "VATRate": 0.15,
+            "Province": "NB",
+            "EffectiveFrom": "2016-07-01",
+            "EffectiveTo": None,
+            "Recoverable": True
+        },
+        # Zero-rated supply
+        {
+            "TaxCode": "ZERO",
+            "TaxDescription": "NB Zero-rated Supply",
+            "VATRate": 0.00,
+            "Province": "NB",
+            "EffectiveFrom": None,
+            "EffectiveTo": None,
+            "Recoverable": True
+        },
+        # Exempt supply
+        {
+            "TaxCode": "EXEMPT",
+            "TaxDescription": "NB EXEMPT Supply",
+            "VATRate": 0.00,
+            "Province": "NB",
+            "EffectiveFrom": None,
+            "EffectiveTo": None,
+            "Recoverable": False
+        },
+    ]
+    tax_rules_table = pd.DataFrame(tax_rules_data)
+    
+    tax_rules_table["EffectiveFrom"] = pd.to_datetime(
+        tax_rules_table["EffectiveFrom"]
+    )
+    tax_rules_table["EffectiveTo"] = pd.to_datetime(
+        tax_rules_table["EffectiveTo"]
+    )
+    return tax_rules_table
+
+
+def get_tax_rule(
+    transaction_date: str,
+    tax_code: str,
+    province: str,
+    tax_rules_table: pd.DataFrame
+) -> tuple[float, bool]:
+
+    transaction_date = pd.to_datetime(transaction_date)
+    if pd.isna(transaction_date):
+        raise ValueError("Missing or invalid transaction date")
+
+    if province not in tax_rules_table["Province"].values:
+        raise ValueError("No applicable province data")
+
+    province_rules = tax_rules_table[
+        tax_rules_table["Province"] == province
+    ].copy()
+    
+
+    if tax_code in ["ZERO", "EXEMPT"]:
+
+        rule = province_rules[
+            province_rules["TaxCode"] == tax_code
+        ]
+    
+
+    elif tax_code == "STANDARD":
+
+        rule = province_rules[
+            (province_rules["TaxCode"].str.startswith("HST"))
+            & (province_rules["EffectiveFrom"] <= transaction_date)
+            &
+            (
+                (province_rules["EffectiveTo"] >= transaction_date)
+                |
+                province_rules["EffectiveTo"].isna()
+            )
+        ]
+    else:
+        raise ValueError("Invalid tax code")
+    
+    if rule.empty:
+        raise ValueError("No applicable tax rule found")
+    elif  rule.shape[0] > 1:
+        raise ValueError("Multiple applicable tax rules found")
+
+    return rule.iloc[0]["VATRate"], rule.iloc[0]["Recoverable"]
+
+
+
+# =================================================================
+# 02 — INTERNET AND RESELLER SALES
+# =================================================================
 
 def transform_internet_sales(
     internet_sales_df: pd.DataFrame,
     product_df: pd.DataFrame,
     customer_df: pd.DataFrame,
-    tax_rules_table:pd.DataFrame
+    tax_rules_table: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Transform raw Internet sales data into a business-ready Sales table.
@@ -170,8 +303,6 @@ def transform_internet_sales(
     return sales_df
 
 
-# ---------- RESELLER SALES ----------
-
 def transform_reseller_sales(
     reseller_sales_df: pd.DataFrame,
     product_df: pd.DataFrame,
@@ -304,8 +435,6 @@ def transform_reseller_sales(
     return sales_df
 
 
-# ---------- BUILD SALES TABLE ----------
-
 def build_sales_tables(
     internet_sales: pd.DataFrame,
     reseller_sales: pd.DataFrame
@@ -325,7 +454,10 @@ def build_sales_tables(
     return sales_table
 
 
-# ---------- PURCHASES ----------
+
+# =================================================================
+# 03 — PURCHASES AND VALIDATION
+# =================================================================
 
 def transform_purchases(
     purchases_df: pd.DataFrame,
@@ -448,23 +580,23 @@ def transform_purchases(
     ]
     purchases_table = purchases_table[purchases_final_columns]
 
-    # 10. Return the transformed DataFrame
+    # 13. Return the transformed DataFrame
     return purchases_table
 
-#----------- validation function ----------
+
 def validate_purchases(
     purchases_table: pd.DataFrame
 ) -> pd.DataFrame:
     
     purchases = purchases_table.copy()
     
-    #1.expected tax paid
+    # 1. expected tax paid
     purchases["ExpectedTaxPaid"] = (
         purchases["PurchaseAmount"] *
         purchases["TaxRate"]
     ).round(2)    
     
-    #2. Expected recoverable input tax
+    # 2. Expected recoverable input tax
     purchases["ExpectedInputVAT"] = np.where(
         purchases["Recoverable"] == True,
         purchases["ExpectedTaxPaid"],
@@ -479,7 +611,7 @@ def validate_purchases(
         "PASS",
         "FAIL"
     )
-    #4. Input VAT validation
+    # 3. Input VAT validation
     purchases["InputVATValidation"] = np.where(
         (
             purchases["InputVAT"] -
@@ -491,7 +623,10 @@ def validate_purchases(
     return purchases
 
 
-# ---------- TAX ADJUSTMENTS ----------
+
+# =================================================================
+# 04 — TAX ADJUSTMENTS
+# =================================================================
 
 def create_tax_adjustments(
     sales_table: pd.DataFrame,
@@ -583,7 +718,7 @@ def create_tax_adjustments(
     # 13. Add business information for purchase adjustments
     Purchase_sample["AdjustmentType"] = "Purchase Correction"
     Purchase_sample["Department"] = "Finance"
-    Purchase_sample["Reason"] = "'5%' simulated Purchase correction"
+    Purchase_sample["Reason"] = "5% simulated Purchase correction"
 
     # 14. Generate unique adjustment IDs for purchase adjustments
     Purchase_sample["AdjustmentID"] = [
@@ -639,134 +774,10 @@ def create_tax_adjustments(
     return tax_adjustments_table
 
 
-# --------------Tax table -----------
-def create_tax_rules() -> pd.DataFrame:
-    
-    # 1. Define New Brunswick tax rules
-    tax_rules_data = [
-        # HST old historical standard rate
-        {
-            "TaxCode": "HST15_OLD",
-            "TaxDescription": "NB Standard HST",
-            "VATRate": 0.15,
-            "Province": "NB",
-            "EffectiveFrom": "1997-04-01",
-            "EffectiveTo": "2006-06-30",
-            "Recoverable": True
-        },
-        # HST First historical standard rate
-        {
-            "TaxCode": "HST14",
-            "TaxDescription": "NB Standard HST",
-            "VATRate": 0.14,
-            "Province": "NB",
-            "EffectiveFrom": "2006-07-01",
-            "EffectiveTo": "2007-12-31",
-            "Recoverable": True
-        },  
-        # HST Second historical standard rate
-        {
-            "TaxCode": "HST13",
-            "TaxDescription": "NB Standard HST",
-            "VATRate": 0.13,
-            "Province": "NB",
-            "EffectiveFrom": "2008-01-01",
-            "EffectiveTo": "2016-06-30",
-            "Recoverable": True
-        },
-        
-        # HST current standard rate
-        {
-            "TaxCode": "HST15",
-            "TaxDescription": "NB Standard HST",
-            "VATRate": 0.15,
-            "Province": "NB",
-            "EffectiveFrom": "2016-07-01",
-            "EffectiveTo": None,
-            "Recoverable": True
-        },
-        # Zero-rated supply
-        {
-            "TaxCode": "ZERO",
-            "TaxDescription": "NB Zero-rated Supply",
-            "VATRate": 0.00,
-            "Province": "NB",
-            "EffectiveFrom": None,
-            "EffectiveTo": None,
-            "Recoverable": True
-        },
-        # Exempt supply
-        {
-            "TaxCode": "EXEMPT",
-            "TaxDescription": "NB EXEMPT Supply",
-            "VATRate": 0.00,
-            "Province": "NB",
-            "EffectiveFrom": None,
-            "EffectiveTo": None,
-            "Recoverable": False
-        },
-    ]
-    tax_rules_table = pd.DataFrame(tax_rules_data)
-    
-    tax_rules_table["EffectiveFrom"] = pd.to_datetime(
-        tax_rules_table["EffectiveFrom"]
-    )
-    tax_rules_table["EffectiveTo"] = pd.to_datetime(
-        tax_rules_table["EffectiveTo"]
-    )
-    return tax_rules_table
 
-# --------------- VAT returns ---------------
-
-def get_tax_rule(
-    transaction_date: str,
-    tax_code:str,
-    province:str,
-    tax_rules_table:pd.DataFrame
-) -> tuple[float,bool]:
-
-    transaction_date = pd.to_datetime(transaction_date)
-    if pd.isna(transaction_date):
-        raise ValueError("Missing or invalid transaction date")
-
-    if province not in tax_rules_table["Province"].values:
-        raise ValueError("No applicable province data")
-
-    province_rules = tax_rules_table[
-        tax_rules_table["Province"] == province
-    ].copy()
-    
-
-    if tax_code in ["ZERO", "EXEMPT"]:
-
-        rule = province_rules[
-            province_rules["TaxCode"] == tax_code
-        ]
-    
-
-    elif tax_code == "STANDARD":
-
-        rule = province_rules[
-            (province_rules["TaxCode"].str.startswith("HST"))
-            & (province_rules["EffectiveFrom"] <= transaction_date)
-            &
-            (
-                (province_rules["EffectiveTo"] >= transaction_date)
-                |
-                province_rules["EffectiveTo"].isna()
-            )
-        ]
-    else:
-        raise ValueError("Invalid tax code")
-    
-    if rule.empty:
-        raise ValueError("No applicable tax rule found")
-    elif  rule.shape[0] > 1:
-        raise ValueError("Multiple applicable tax rules found")
-
-    return rule.iloc[0]["VATRate"], rule.iloc[0]["Recoverable"]
-
-# ---------- EXPORT TABLES ----------
+# =================================================================
+# 05 — CSV EXPORTS
+# =================================================================
 
 def save_sales_table(
     sales_table: pd.DataFrame
@@ -790,7 +801,8 @@ def save_purchases_table(
     )
 
     print("Purchases.csv exported successfully.")
-    
+
+
 def save_tax_adjustments_table(
     tax_adjustments_table: pd.DataFrame
 ):
@@ -802,7 +814,10 @@ def save_tax_adjustments_table(
     print("TaxAdjustment.csv exported successfully.")
 
 
-# ---------- MAIN / TEST ----------
+
+# =================================================================
+# 06 — MAIN PIPELINE AND ALL ORIGINAL TESTS
+# =================================================================
 
 def main():
 
@@ -817,7 +832,7 @@ def main():
     customer_df = load_table("DimCustomer")
     reseller_df = load_table("DimReseller")
     
-    #11. Export Purchases table
+    # 2. Tax rules: table inspection and lookup test
     print("\n" + "=" * 50)
     print("TAX RULES TEST")
     print("=" * 50)
@@ -835,15 +850,15 @@ def main():
     print("TAX RULES TEST")
     print("=" * 50)
     
-    tax_rate, Recoverable = get_tax_rule(
+    tax_rate, recoverable = get_tax_rule(
         "2013-05-10",
         "STANDARD",
         "NB",
         tax_rules_table
         )
-    print(tax_rate,Recoverable)
+    print(tax_rate, recoverable)
 
-    # 2. Transform Internet Sales
+    # 3. Transform Internet Sales
     print("\n" + "=" * 50)
     print("Internet sales transformation")
     print("=" * 50)
@@ -896,7 +911,7 @@ def main():
         internet_sales["Department"].value_counts()
     )
 
-    # 3. Transform Reseller Sales
+    # 4. Transform Reseller Sales
     print("\n" + "=" * 50)
     print("Reseller sales transformation")
     print("=" * 50)
@@ -938,7 +953,7 @@ def main():
         reseller_sales["Department"].value_counts()
     )
 
-    # 4. Build consolidated Sales table
+    # 5. Build consolidated Sales table
     print("\n" + "=" * 50)
     print("Sales table consolidation")
     print("=" * 50)
@@ -983,7 +998,7 @@ def main():
         duplicate_count
     )
 
-    # 5. Export Sales table
+    # 6. Export Sales table
     print("\n" + "=" * 50)
     print("Export Sales table")
     print("=" * 50)
@@ -992,22 +1007,7 @@ def main():
         sales_table
     )
 
-    # 6. Load Purchases source tables
-    print("\n" + "=" * 50)
-    print("Purchases transformation")
-    print("=" * 50)
-
-    purchases_df = load_table("Purchases")
-    date_df = load_table("DimDate")
-
-    # 7. Transform Purchases
-    purchases_table = transform_purchases(
-        purchases_df,
-        product_df,
-        date_df,
-        tax_rules_table
-    )
-    
+    # 7. Sales VAT calculation tests 
     # Validate Output VAT calculations
     expected_output_vat = (
         sales_table["SalesAmount"]
@@ -1084,7 +1084,24 @@ def main():
 
     print("\n" + "=" * 50)
 
-    # ---------- PURCHASES TESTS ----------
+
+    # 8. Load Purchases source tables
+    print("\n" + "=" * 50)
+    print("Purchases transformation")
+    print("=" * 50)
+
+    purchases_df = load_table("Purchases")
+    date_df = load_table("DimDate")
+
+    # 9. Transform Purchases
+    purchases_table = transform_purchases(
+        purchases_df,
+        product_df,
+        date_df,
+        tax_rules_table
+    )
+    
+    # 10. Purchases tests 
 
     print("Raw shape:", purchases_df.shape)
     print("Transformed shape:", purchases_table.shape)
@@ -1170,7 +1187,7 @@ def main():
         len(purchases_table)
     )
 
-    # 8. Export Purchases table
+    # 11. Export Purchases table
     print("\n" + "=" * 50)
     print("Export Purchases table")
     print("=" * 50)
@@ -1229,7 +1246,7 @@ def main():
         (~purchases_table["Recoverable"]).sum()
     )
     
-    #temporary VAT testing 
+    # Temporary non-recoverable VAT test (preserved) 
     # Test a non-recoverable purchase
     test_purchase = purchases_table.iloc[0].copy()
 
@@ -1246,9 +1263,22 @@ def main():
     print("Recoverable:", test_purchase["Recoverable"])
     print("Expected Input VAT:", test_input_vat)
     
-    #-----------------test taxAdjusment -------------
+    # 12. Purchase validation function tests (preserved)
+    print("\n" + "=" * 50)
+    print("Validate function")
+    print("=" * 50)
     
-    # 9. Create Tax Adjustments
+    validate_purch_table = validate_purchases(
+        purchases_table
+        )
+    print("Validate table shape",validate_purch_table.shape)
+    print(
+        "Validated columns", validate_purch_table.columns.to_list()
+    )
+    
+    # ---------- TAX ADJUSTMENTS TESTS  ----------
+    
+    # 13. Create Tax Adjustments
     print("\n" + "=" * 50)
     print("Tax Adjustments")
     print("=" * 50)
@@ -1280,7 +1310,7 @@ def main():
             "AdjustmentID"
         ].duplicated().sum()
     )
-    # 10. Export Purchases table
+    # 14. Export tax adjustments
     print("\n" + "=" * 50)
     print("Export TaxAdjustment table")
     print("=" * 50)
