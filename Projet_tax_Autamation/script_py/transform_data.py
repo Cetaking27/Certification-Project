@@ -816,7 +816,7 @@ def save_tax_adjustments_table(
 
 
 # =================================================================
-# 06 — MAIN PIPELINE AND ALL ORIGINAL TESTS
+# 06 — MAIN PIPELINE AND ALL TESTS
 # =================================================================
 
 def main():
@@ -1246,7 +1246,7 @@ def main():
         (~purchases_table["Recoverable"]).sum()
     )
     
-    # Temporary non-recoverable VAT test (preserved) 
+    # Temporary non-recoverable VAT test 
     # Test a non-recoverable purchase
     test_purchase = purchases_table.iloc[0].copy()
 
@@ -1263,7 +1263,7 @@ def main():
     print("Recoverable:", test_purchase["Recoverable"])
     print("Expected Input VAT:", test_input_vat)
     
-    # 12. Purchase validation function tests (preserved)
+    # 12. Purchase validation function tests
     print("\n" + "=" * 50)
     print("Validate function")
     print("=" * 50)
@@ -1275,6 +1275,27 @@ def main():
     print(
         "Validated columns", validate_purch_table.columns.to_list()
     )
+    
+  
+    # ---------- TEMPORARY PURCHASE VALIDATION TEST ----------
+
+    print("#"*30)
+    test_purchase_validation = purchases_table.copy()
+    row_index = test_purchase_validation.index[2]
+    test_purchase_validation.loc[row_index, "TaxPaid"] += 10
+
+    test_purchase_validation = validate_purchases(test_purchase_validation)
+
+    print(test_purchase_validation.head())
+
+    print("\nTaxPaid Validation:")
+    print(test_purchase_validation["TaxPaidValidation"].value_counts())
+
+    # 7. Check InputVAT validation results
+    print("\nInputVAT Validation:")
+    print(test_purchase_validation["InputVATValidation"].value_counts())
+    print("###"*30)
+
     
     # ---------- TAX ADJUSTMENTS TESTS  ----------
     
