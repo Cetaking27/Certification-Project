@@ -27,7 +27,12 @@ from load_data import load_table
 # =================================================================
 
 def create_tax_rules() -> pd.DataFrame:
-    
+    """Build the project's simulated New Brunswick HST lookup table.
+
+    Rates, dates, and recoverability assumptions must be verified against
+    authoritative tax rules before any real-world fiscal use.
+    """
+
     # 1. Define New Brunswick tax rules
     tax_rules_data = [
         # HST old historical standard rate
@@ -109,6 +114,11 @@ def get_tax_rule(
     province: str,
     tax_rules_table: pd.DataFrame
 ) -> tuple[float, bool]:
+    """Return the single matching VAT rate and recoverability flag.
+
+    STANDARD uses effective dates; ZERO and EXEMPT use their fixed entries.
+    Raises ValueError when no unique applicable rule can be found.
+    """
 
     transaction_date = pd.to_datetime(transaction_date)
     if pd.isna(transaction_date):
@@ -465,6 +475,11 @@ def transform_purchases(
     date_df: pd.DataFrame,
     tax_rules_table: pd.DataFrame
 ) -> pd.DataFrame:
+    """Create a simulated purchases table enriched with tax information.
+
+    OriginalInputVAT preserves the source value; InputVAT is recalculated
+    under the project's simplified recoverability assumptions.
+    """
 
     # 1. Copy the source DataFrame
     purchases_table = purchases_df.copy()
@@ -587,10 +602,15 @@ def transform_purchases(
 def validate_purchases(
     purchases_table: pd.DataFrame
 ) -> pd.DataFrame:
+    """Audit TaxPaid and InputVAT without mutating the input table.
+
+    Independent checks return PASS, FAIL, or MISSING. The overall status
+    prioritizes INVALID over INCOMPLETE over VALID.
+    """
 
     purchases = purchases_table.copy()
 
-    # 1. Normalize Recoverable to nullable boolean
+    # 1. Allow missing values in Recoverable; create the boolean mask below
     purchases["Recoverable"] = (
         purchases["Recoverable"].astype(object)
     )
@@ -619,6 +639,8 @@ def validate_purchases(
     ).round(2)
 
     # 4. Calculate expected recoverable input tax
+    # The Boolean mask uses False only for computation; unknown source
+    # recoverability is still recorded as NaN in ExpectedInputVAT.
     recoverable_mask = (
         purchases["Recoverable"]
         .astype("boolean")
@@ -667,7 +689,64 @@ def validate_purchases(
         default="FAIL"
     )
 
+    # 7. Classify each purchase: FAIL takes priority over MISSING.
+    validation_columns = [
+        "TaxPaidValidation",
+        "InputVATValidation"
+    ]
+
+    invalid_mask = purchases[validation_columns].eq("FAIL").any(axis=1)
+
+    incomplete_mask = purchases[validation_columns].eq("MISSING").any(axis=1)
+
+    # print("INVALID detected:", invalid_mask.sum())
+    # print("INCOMPLETE detected:", incomplete_mask.sum())
+
+    purchases["PurchaseValidationStatus"] = np.select(
+        condlist=[
+            invalid_mask,
+            incomplete_mask
+        ],
+        choicelist=[
+            "INVALID",
+            "INCOMPLETE"
+        ],
+        default="VALID"
+    )
     return purchases
+
+def generate_purchase_validation_report(
+    purchases: pd.DataFrame
+) -> pd.DataFrame:
+    """Return only INVALID and INCOMPLETE purchases for review.
+
+    Preserves the original validated table and reports key amounts,
+    expected amounts, and their corresponding validation statuses.
+    """
+    final_column = [
+        "PurchaseID",
+        "PurchaseDate",
+        "PurchaseAmount",
+        "TaxPaid",
+        "ExpectedTaxPaid",
+        "InputVAT",
+        "ExpectedInputVAT",
+        "TaxPaidValidation",
+        "InputVATValidation",
+        "PurchaseValidationStatus",
+    ]
+
+    filter_mask = purchases["PurchaseValidationStatus"].isin(
+        ["INVALID", "INCOMPLETE"]
+    )
+
+    validation_file = purchases.loc[filter_mask, final_column].copy()
+    
+    validation_file = validation_file.sort_values(
+        by="PurchaseValidationStatus"
+    )
+    return validation_file
+    
 
 # =================================================================
 # 04 — TAX ADJUSTMENTS
@@ -677,6 +756,10 @@ def create_tax_adjustments(
     sales_table: pd.DataFrame,
     purchases_table: pd.DataFrame
 ) -> pd.DataFrame:
+    """Generate 40 reproducible, simulated sales/purchase adjustments.
+
+    The 5% reductions are test data, not real correction documents.
+    """
 
     # 1. Select the sales columns required for tax adjustments
     sales_adjustments = sales_table[
@@ -827,6 +910,7 @@ def create_tax_adjustments(
 def save_sales_table(
     sales_table: pd.DataFrame
 ):
+    """Export the Sales table to the project clean_dataset directory."""
     sales_table.to_csv(
         "C:/Users/Cetaking/Desktop/formation/"
         "Projet_tax_Autamation/clean_dataset/Sales.csv",
@@ -839,6 +923,7 @@ def save_sales_table(
 def save_purchases_table(
     purchases_table: pd.DataFrame
 ):
+    """Export the Purchases table to the project clean_dataset directory."""
     purchases_table.to_csv(
         "C:/Users/Cetaking/Desktop/formation/"
         "Projet_tax_Autamation/clean_dataset/Purchases.csv",
@@ -851,12 +936,13 @@ def save_purchases_table(
 def save_tax_adjustments_table(
     tax_adjustments_table: pd.DataFrame
 ):
+    """Export the TaxAdjustments table to the project clean_dataset directory."""
     tax_adjustments_table.to_csv(
         "C:/Users/Cetaking/Desktop/formation/"
         "Projet_tax_Autamation/clean_dataset/TaxAdjustments.csv",
         index=False
     )
-    print("TaxAdjustment.csv exported successfully.")
+    print("TaxAdjustments.csv exported successfully.")
 
 
 
@@ -865,6 +951,11 @@ def save_tax_adjustments_table(
 # =================================================================
 
 def main():
+    """Run transformations, inspections, anomaly tests, and CSV exports.
+
+    All existing inline tests are intentionally retained to keep the
+    project's development and validation history visible.
+    """
 
     # 1. Load source DataFrames
     print("#" * 50)
@@ -1322,7 +1413,8 @@ def main():
     )
     
   
-    # ---------- TEMPORARY PURCHASE VALIDATION TEST ----------
+    # ---------- INDIVIDUAL PURCHASE VALIDATION TESTS ----------
+    # Each case modifies an independent copy; source purchases stay unchanged.
     print("###" * 30)
     print("TaxPaid incorrect value")
     adding_incorrect_val = purchases_table.copy()
@@ -1379,9 +1471,85 @@ def main():
     print(input_purchase_val["InputVATValidation"].value_counts())
     print("###"*30)
     print("###"*30)
-
-    # ---------- TAX ADJUSTMENTS TESTS  ----------
     
+    # ---------- PHASE 4.4: COMBINED PURCHASE VALIDATION TEST ----------
+    # Inject three different anomalies into a single test DataFrame.
+
+    print("###" * 30)
+    print("Combined Purchase Validation Testing")
+
+    # 1. Create a copy of the original purchases table
+    combined_purchase_test = purchases_table.copy()
+
+    # 2. Convert Recoverable to nullable boolean
+    combined_purchase_test["Recoverable"] = (
+        combined_purchase_test["Recoverable"].astype("boolean")
+    )
+
+    # 3. Introduce incorrect TaxPaid on the third row
+    row_ind = combined_purchase_test.index[2]
+    combined_purchase_test.loc[row_ind, "TaxPaid"] += 10
+
+    # 4. Introduce missing Recoverable on the fourth row
+    four_row = combined_purchase_test.index[3]
+    combined_purchase_test.loc[four_row, "Recoverable"] = pd.NA
+
+    # 5. Introduce incorrect InputVAT on the fifth row
+    fifth_ind = combined_purchase_test.index[4]
+    combined_purchase_test.loc[fifth_ind, "InputVAT"] += 20
+
+    # 6. Validate all transactions once
+    result = validate_purchases(combined_purchase_test)
+
+    # 7. Display the three modified transactions
+    print("\nModified Transactions:")
+    print(
+        result.loc[
+            [row_ind, four_row, fifth_ind],
+            [
+                "PurchaseID",
+                "TaxPaid",
+                "ExpectedTaxPaid",
+                "Recoverable",
+                "InputVAT",
+                "ExpectedInputVAT",
+                "TaxPaidValidation",
+                "InputVATValidation"
+            ]
+        ]
+    )
+
+    # 8. Display TaxPaid validation counts
+    print("\nTaxPaid Validation:")
+    print(
+        result["TaxPaidValidation"].value_counts()
+    )
+
+    # 9. Display InputVAT validation counts
+    print("\nInputVAT Validation:")
+    print(
+        result["InputVATValidation"].value_counts()
+    )
+    # Additional status-count check (retained as an existing test).
+    # The next two calls repeat the same validation; consider reusing
+    # `result` when optimizing performance, after baseline verification.
+    new_status = validate_purchases(combined_purchase_test)
+    print(new_status["PurchaseValidationStatus"].value_counts())
+    
+    validated_combined = validate_purchases(combined_purchase_test)
+
+    purchase_report = generate_purchase_validation_report(
+        validated_combined
+    )
+
+    print("\nPurchase Validation Report:")
+    print(purchase_report)
+
+    print("Total anomalies:", len(purchase_report))
+    
+    
+    # ---------- TAX ADJUSTMENTS TESTS  ----------
+
     # 13. Create Tax Adjustments
     print("\n" + "=" * 50)
     print("Tax Adjustments")
