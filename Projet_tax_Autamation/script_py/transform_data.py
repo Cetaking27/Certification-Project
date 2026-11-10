@@ -590,25 +590,52 @@ def validate_purchases(
 
     purchases = purchases_table.copy()
 
-    # 1. Identify missing values in required columns
-    columns = ["PurchaseAmount", "TaxRate", "TaxPaid"]
+    # 1. Normalize Recoverable to nullable boolean
+    purchases["Recoverable"] = (
+        purchases["Recoverable"].astype(object)
+    )
 
-    missing_mask = purchases[columns].isna().any(axis=1)
+    # 2. Identify missing values in required columns
+    tax_columns = [
+        "PurchaseAmount",
+        "TaxRate",
+        "TaxPaid"
+    ]
 
-    # 2. Calculate expected tax paid
+    input_columns = [
+        "PurchaseAmount",
+        "TaxRate",
+        "Recoverable",
+        "InputVAT"
+    ]
+
+    missing_mask = purchases[tax_columns].isna().any(axis=1)
+    missing_mask2 = purchases[input_columns].isna().any(axis=1)
+
+    # 3. Calculate expected tax paid
     purchases["ExpectedTaxPaid"] = (
         purchases["PurchaseAmount"] *
         purchases["TaxRate"]
     ).round(2)
 
-    # 3. Calculate expected recoverable input tax
+    # 4. Calculate expected recoverable input tax
+    recoverable_mask = (
+        purchases["Recoverable"]
+        .astype("boolean")
+        .fillna(False)
+        .astype(bool)
+    )
     purchases["ExpectedInputVAT"] = np.where(
-        purchases["Recoverable"] == True,
-        purchases["ExpectedTaxPaid"],
-        0
+        purchases["Recoverable"].isna(),
+        np.nan,
+        np.where(
+            recoverable_mask,
+            purchases["ExpectedTaxPaid"],
+            0.0
+        )
     )
 
-    # 4. Validate TaxPaid with three possible statuses
+    # 5. Validate TaxPaid
     purchases["TaxPaidValidation"] = np.select(
         condlist=[
             missing_mask,
@@ -624,18 +651,23 @@ def validate_purchases(
         default="FAIL"
     )
 
-    # 5. Validate InputVAT (unchanged)
-    purchases["InputVATValidation"] = np.where(
-        (
-            purchases["InputVAT"] -
-            purchases["ExpectedInputVAT"]
-        ).abs() < 0.000001,
-        "PASS",
-        "FAIL"
+    # 6. Validate InputVAT
+    purchases["InputVATValidation"] = np.select(
+        condlist=[
+            missing_mask2,
+            (
+                purchases["InputVAT"] -
+                purchases["ExpectedInputVAT"]
+            ).abs() < 0.000001
+        ],
+        choicelist=[
+            "MISSING",
+            "PASS"
+        ],
+        default="FAIL"
     )
 
     return purchases
-
 
 # =================================================================
 # 04 — TAX ADJUSTMENTS
@@ -1291,34 +1323,60 @@ def main():
     
   
     # ---------- TEMPORARY PURCHASE VALIDATION TEST ----------
-    # print("###"*30)
-    # print("#"*30)
-    # test_purchase_validation = purchases_table.copy()
-    # row_index = test_purchase_validation.index[2]
-    # test_purchase_validation.loc[row_index, "TaxPaid"] += 10
+    print("###" * 30)
+    print("TaxPaid incorrect value")
+    adding_incorrect_val = purchases_table.copy()
+    row_index1 = adding_incorrect_val.index[0]
+    
+    adding_incorrect_val.loc[row_index1, "TaxPaid"] = (
+        adding_incorrect_val.loc[row_index1, "TaxPaid"] + 10
+    )
+    adding_incorrect_val = validate_purchases(adding_incorrect_val)
+    print(adding_incorrect_val.loc[[row_index1]])
+    print("\nTaxPaid Validation:")
+    print(
+        adding_incorrect_val["TaxPaidValidation"].value_counts()
+    )
+    print("\nInputVAT Validation:")
+    print(
+        adding_incorrect_val["InputVATValidation"].value_counts()
+    )
+    
+        
+    print("###" * 30)
+    print("InputVAT Missing Value Testing")
+  
 
-    # test_purchase_validation = validate_purchases(test_purchase_validation)
+    missing_inputvat_test = purchases_table.copy()
+    row_index = missing_inputvat_test.index[3]
+    missing_inputvat_test["Recoverable"] = (
+        missing_inputvat_test["Recoverable"].astype("boolean")
+    )
+    missing_inputvat_test.loc[row_index, "Recoverable"] = pd.NA
+    missing_inputvat_result = validate_purchases(missing_inputvat_test)
+    print(missing_inputvat_result.loc[[row_index]])
+    print("\nTaxPaid Validation:")
+    print(
+        missing_inputvat_result["TaxPaidValidation"].value_counts()
+    )
+    print("\nInputVAT Validation:")
+    print(
+        missing_inputvat_result["InputVATValidation"].value_counts()
+    )
 
-    # print(test_purchase_validation.head())
-
-    # print("\nTaxPaid Validation:")
-    # print(test_purchase_validation["TaxPaidValidation"].value_counts())
-
-    # 7. Check InputVAT validation results
-    # print("\nInputVAT Validation:")
-    # print(test_purchase_validation["InputVATValidation"].value_counts())
+    print("###" * 30)
     print("###"*30)
    
 
-    print("missing value testing")
-    missing_validation = purchases_table.copy()
-    row_index2 = missing_validation.index[3]
-    missing_validation.loc[row_index2, "TaxPaid"] = np.nan
+    print("Input Val testing")
+    inputVAT_validation = purchases_table.copy()
+    row_index2 = inputVAT_validation.index[4]
+    inputVAT_validation.loc[row_index2, "InputVAT"] += 20
     
-    missing_purchase_val = validate_purchases(missing_validation)
-    print(missing_purchase_val.head())
-    print(missing_purchase_val["TaxPaidValidation"].value_counts())
-    print(missing_purchase_val["InputVATValidation"].value_counts())
+    input_purchase_val = validate_purchases(inputVAT_validation)
+    print(input_purchase_val.loc[[row_index2]])
+    print(input_purchase_val["TaxPaidValidation"].value_counts())
+    print(input_purchase_val["InputVATValidation"].value_counts())
     print("###"*30)
     print("###"*30)
 
