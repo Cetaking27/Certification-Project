@@ -746,8 +746,55 @@ def generate_purchase_validation_report(
         by="PurchaseValidationStatus"
     )
     return validation_file
-    
 
+
+def calculate_purchase_quality_kpis(
+    validation_file: pd.DataFrame
+) -> dict:
+
+    Kpis_calculation = validation_file.copy()
+
+    # 1. Count total transactions
+    TotalTransactions = len(Kpis_calculation)
+
+    # 2. Count VALID, INVALID and INCOMPLETE
+    status_counts = Kpis_calculation[
+        "PurchaseValidationStatus"
+    ].value_counts()
+
+    invalid_count = status_counts.get("INVALID", 0)
+    valid_count = status_counts.get("VALID", 0)
+    incomplete_count = status_counts.get("INCOMPLETE", 0)
+
+    # 3. Handle an empty DataFrame
+    if TotalTransactions == 0:
+        invalid_percentage = None
+        valid_percentage = None
+        incomplete_percentage = None
+
+    # 4. Calculate three percentages
+    else:
+        invalid_percentage = round(
+            (invalid_count / TotalTransactions) * 100, 2
+        )
+
+        valid_percentage = round(
+            (valid_count / TotalTransactions) * 100, 2
+        )
+
+        incomplete_percentage = round(
+            (incomplete_count / TotalTransactions) * 100, 2
+        )
+
+    # 5. Return the KPI dictionary
+    kpis = {
+        "TotalTransactions": TotalTransactions,
+        "ComplianceRate": valid_percentage,
+        "InvalidRate": invalid_percentage,
+        "IncompleteRate": incomplete_percentage
+    }
+
+    return kpis
 # =================================================================
 # 04 — TAX ADJUSTMENTS
 # =================================================================
@@ -1546,6 +1593,17 @@ def main():
     print(purchase_report)
 
     print("Total anomalies:", len(purchase_report))
+    
+    # ---------- PHASE 4.7: PURCHASE QUALITY KPI TEST ----------
+
+    print("\n" + "=" * 50)
+    print("PURCHASE QUALITY KPI REPORT")
+    print("=" * 50)
+    
+    purchase_kpis = calculate_purchase_quality_kpis(result)
+    
+    for kpi, value in purchase_kpis.items():
+        print(f"{kpi}: {value}")
     
     
     # ---------- TAX ADJUSTMENTS TESTS  ----------
