@@ -15,6 +15,8 @@ Outputs:
     - Sales
     - Purchases
     - TaxAdjustments
+    - PurchaseQualityKPIs.csv
+    - PurchaseValidationReport.csv
 """
 
 import pandas as pd
@@ -751,6 +753,11 @@ def generate_purchase_validation_report(
 def calculate_purchase_quality_kpis(
     validation_file: pd.DataFrame
 ) -> dict:
+    """Summarize purchase-validation statuses across the full validated table.
+
+    Rates use all transactions as denominator and are rounded to 2 decimals.
+    Empty inputs return None for rates (undefined denominator).
+    """
 
     Kpis_calculation = validation_file.copy()
 
@@ -948,7 +955,41 @@ def create_tax_adjustments(
 
     return tax_adjustments_table
 
+# =================================================================
+# 05 — VAT/HST RETURN GENERATION
+# =================================================================
 
+def calculate_net_hst(
+    sales_table: pd.DataFrame,
+    purchases_table: pd.DataFrame,
+    tax_adjustments_table: pd.DataFrame
+) -> dict:
+    
+    TotalOutputVAT = sales_table["OutputVAT"].sum()
+    TotalInputVAT = purchases_table["InputVAT"].sum()
+    
+    SalesVATAdjustments = tax_adjustments_table.loc[
+        tax_adjustments_table["AdjustmentType"] == "Sales Correction",
+        "VATAdjustment"
+    ].sum()
+
+    PurchaseVATAdjustments = tax_adjustments_table.loc[
+        tax_adjustments_table["AdjustmentType"] == "Purchase Correction",
+        "VATAdjustment"
+    ].sum()
+    
+    NetHST = (
+        (TotalOutputVAT + SalesVATAdjustments)
+        - (TotalInputVAT + PurchaseVATAdjustments)
+    )
+    
+    return {
+        "TotalOutputVAT": TotalOutputVAT,
+        "TotalInputVAT": TotalInputVAT,
+        "SalesVATAdjustments": SalesVATAdjustments,
+        "PurchaseVATAdjustments": PurchaseVATAdjustments,
+        "NetHST": round(NetHST, 2)
+    }
 
 # =================================================================
 # 05 — CSV EXPORTS
@@ -990,7 +1031,35 @@ def save_tax_adjustments_table(
         index=False
     )
     print("TaxAdjustments.csv exported successfully.")
+    
+def save_purchase_quality_report(
+    validation_file: pd.DataFrame
+):
+    """Export KPI summary and anomaly details from the full validated table."""
 
+    # 1. Calculate KPIs using the existing function
+    kpis = calculate_purchase_quality_kpis(validation_file)
+
+    # 2. Convert the KPI dictionary into a DataFrame
+    kpis_df = pd.DataFrame([kpis])
+
+    # 3. Export the one-row KPI summary to CSV
+    kpis_df.to_csv(
+        "C:/Users/Cetaking/Desktop/formation/"
+        "Projet_tax_Autamation/clean_dataset/PurchaseQualityKPIs.csv",
+        index=False
+    )
+    # 4. Export only INVALID and INCOMPLETE purchase transactions
+    anomaly_file =  generate_purchase_validation_report(validation_file)
+    anomaly_file.to_csv(
+        "C:/Users/Cetaking/Desktop/formation/"
+        "Projet_tax_Autamation/clean_dataset/PurchaseValidationReport.csv",
+        index=False
+    )
+
+    # 5. Print an export confirmation
+    print("PurchaseQualityKPIs.csv exported successfully.")
+    print("PurchaseValidationReport.csv exported successfully.")
 
 
 # =================================================================
@@ -1545,7 +1614,7 @@ def main():
     fifth_ind = combined_purchase_test.index[4]
     combined_purchase_test.loc[fifth_ind, "InputVAT"] += 20
 
-    # 6. Validate all transactions once
+    # 6. Validate all transactions for the combined test
     result = validate_purchases(combined_purchase_test)
 
     # 7. Display the three modified transactions
@@ -1599,12 +1668,14 @@ def main():
     print("\n" + "=" * 50)
     print("PURCHASE QUALITY KPI REPORT")
     print("=" * 50)
-    
+
     purchase_kpis = calculate_purchase_quality_kpis(result)
-    
+
     for kpi, value in purchase_kpis.items():
         print(f"{kpi}: {value}")
-    
+        
+    # ---------- PURCHASE QUALITY KPI EXPORT ----------
+    save_purchase_quality_report(validate_purch_table)
     
     # ---------- TAX ADJUSTMENTS TESTS  ----------
 
@@ -1648,6 +1719,21 @@ def main():
     save_tax_adjustments_table(
         tax_adjustments_table
         )
+    
+    # ---------- PHASE 5.1: NET HST CALCULATION TEST ----------
+
+    print("\n" + "=" * 50)
+    print("NET HST CALCULATION")
+    print("=" * 50)
+    
+    net_hst_result = calculate_net_hst(
+        sales_table,
+        purchases_table,
+        tax_adjustments_table
+    )
+    
+    for indicator, value in net_hst_result.items():
+        print(f"{indicator}: {value}")
 
 if __name__ == "__main__":
     main()

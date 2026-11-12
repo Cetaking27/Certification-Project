@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Large datasets from tax project
+/Projet_tax_Autamation/dataset/
+
+# Temporary system files
+desktop.ini
+.Rhistory
+
+# ==========================================
+# Python temporary files
+# ==========================================
+__pycache__/
+*.pyc
+
+# ==========================================
+# Tax project source datasets
+# ==========================================
+/Projet_tax_Autamation/dataset/
+
+# ==========================================
+# Temporary system files
+# ==========================================
+desktop.ini
+.Rhistory

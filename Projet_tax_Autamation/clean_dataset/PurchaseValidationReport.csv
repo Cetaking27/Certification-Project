@@ -1,0 +1,1 @@
+PurchaseID,PurchaseDate,PurchaseAmount,TaxPaid,ExpectedTaxPaid,InputVAT,ExpectedInputVAT,TaxPaidValidation,InputVATValidation,PurchaseValidationStatus
