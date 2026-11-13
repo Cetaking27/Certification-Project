@@ -990,6 +990,81 @@ def calculate_net_hst(
         "PurchaseVATAdjustments": PurchaseVATAdjustments,
         "NetHST": round(NetHST, 2)
     }
+    
+def calculate_hst_by_period(
+    sales_table: pd.DataFrame,
+    purchases_table: pd.DataFrame,
+    tax_adjustments_table: pd.DataFrame,
+    start_date: str,
+    end_date: str
+) -> dict:
+
+    # 1. Convert start_date and end_date to datetime
+    start_date = pd.to_datetime(start_date, format="%Y-%m-%d")
+    end_date = pd.to_datetime(end_date, format="%Y-%m-%d")
+
+    # 2. Verify that start_date <= end_date
+    if start_date > end_date:
+        raise ValueError("Start date cannot be after end date")
+
+    # 3. Filter sales by reporting period
+    sales_filtered = sales_table.loc[
+        pd.to_datetime(sales_table["OrderDate"]).between(
+            start_date, end_date
+        )
+    ].copy()
+
+    # 4. Filter purchases by reporting period
+    purchases_filtered = purchases_table.loc[
+        pd.to_datetime(purchases_table["PurchaseDate"]).between(
+            start_date, end_date
+        )
+    ].copy()
+
+    # 5. Filter tax adjustments by reporting period
+    adjustments_filtered = tax_adjustments_table.loc[
+        pd.to_datetime(tax_adjustments_table["AdjustmentDate"]).between(
+            start_date, end_date
+        )
+    ].copy()
+
+    # 6. Calculate Net HST for the selected period
+    result = calculate_net_hst(
+        sales_filtered,
+        purchases_filtered,
+        adjustments_filtered
+    )
+
+    return result
+
+def generate_hst_return(
+    sales_table: pd.DataFrame,
+    purchases_table: pd.DataFrame,
+    tax_adjustments_table: pd.DataFrame,
+    start_date: str,
+    end_date: str
+) -> pd.DataFrame:
+
+    # 1. Calculate Net HST for the selected period
+    result = calculate_hst_by_period(
+        sales_table,
+        purchases_table,
+        tax_adjustments_table,
+        start_date,
+        end_date
+    )
+
+    # 2. Add reporting period information
+    result["PeriodStart"] = start_date
+    result["PeriodEnd"] = end_date
+
+    # 3. Convert the result into a DataFrame
+    NetHST = pd.DataFrame([result])
+
+    # 4. Return the HST return table
+    return NetHST
+
+
 
 # =================================================================
 # 05 — CSV EXPORTS
@@ -1062,6 +1137,18 @@ def save_purchase_quality_report(
     print("PurchaseValidationReport.csv exported successfully.")
 
 
+def save_hst_return(
+    hst_return: pd.DataFrame
+):
+    # 1. Export the HST return DataFrame to CSV
+    hst_return.to_csv(
+        "C:/Users/Cetaking/Desktop/formation/"
+        "Projet_tax_Autamation/clean_dataset/HST_Return_2013_01.csv",
+        index=False
+    )
+    print("HST_Return_2013_01.csv exported successfully")    
+    
+    
 # =================================================================
 # 06 — MAIN PIPELINE AND ALL TESTS
 # =================================================================
@@ -1734,6 +1821,40 @@ def main():
     
     for indicator, value in net_hst_result.items():
         print(f"{indicator}: {value}")
+
+
+    # ---------- PHASE 5.2: HST BY PERIOD TEST ----------
+
+    print("\n" + "=" * 50)
+    print("HST BY PERIOD")
+    print("=" * 50)
+
+    period_result = calculate_hst_by_period(
+        sales_table,
+        purchases_table,
+        tax_adjustments_table,
+        "2013-01-01",
+        "2013-01-31"
+    )
+
+    for indicator, value in period_result.items():
+        print(f"{indicator}: {value}")
+
+    # ---------- PHASE 5.3: HST RETURN GENERATION TEST ----------
+
+    hst_return = generate_hst_return(
+        sales_table,
+        purchases_table,
+        tax_adjustments_table,
+        "2013-01-01",
+        "2013-01-31"
+    )
+
+    print("\nHST RETURN REPORT")
+    print(hst_return.to_string(index=False))
+    print("Shape:", hst_return.shape)
+    
+    save_hst_return(hst_return)
 
 if __name__ == "__main__":
     main()
